@@ -3,27 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SnapLink — Multi Image Upload</title>
+    <title>SnapLink — Image Hosting</title>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root {
-            --bg: #0f0f0f;
-            --bg-elevated: #1a1a1a;
-            --card: #222222;
-            --border: #333333;
+            --bg: #0a0a0a;
+            --bg-elevated: #141414;
+            --card: #1c1c1c;
+            --border: #2a2a2a;
             --fg: #f0ebe3;
-            --muted: #8a8580;
+            --muted: #7a756f;
             --accent: #d4943a;
-            --accent-glow: rgba(212, 148, 58, 0.25);
+            --accent-glow: rgba(212, 148, 58, 0.2);
             --accent-hover: #e8a838;
             --danger: #c44d4d;
-            --success: #4daa6d;
+            --success: #3dba6a;
+            --success-glow: rgba(61, 186, 106, 0.15);
+            --success-border: rgba(61, 186, 106, 0.3);
             --warn: #c49a3a;
-            --warn-bg: rgba(196, 154, 58, 0.1);
-            --warn-border: rgba(196, 154, 58, 0.3);
+            --warn-bg: rgba(196, 154, 58, 0.08);
+            --warn-border: rgba(196, 154, 58, 0.25);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -38,42 +40,30 @@
 
         h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif; }
 
-        .bg-atmosphere {
-            position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
-        }
+        .bg-atmosphere { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
         .bg-atmosphere::before {
-            content: ''; position: absolute; width: 600px; height: 600px;
+            content: ''; position: absolute; width: 700px; height: 700px;
             background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
-            top: -200px; right: -150px;
-            animation: floatBlob1 12s ease-in-out infinite;
+            top: -300px; right: -200px; animation: float1 14s ease-in-out infinite;
         }
         .bg-atmosphere::after {
             content: ''; position: absolute; width: 500px; height: 500px;
-            background: radial-gradient(circle, rgba(212, 148, 58, 0.1) 0%, transparent 70%);
-            bottom: -150px; left: -100px;
-            animation: floatBlob2 15s ease-in-out infinite;
+            background: radial-gradient(circle, rgba(61,186,106,0.06) 0%, transparent 70%);
+            bottom: -200px; left: -150px; animation: float2 18s ease-in-out infinite;
         }
-        @keyframes floatBlob1 {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            33% { transform: translate(-60px, 40px) scale(1.1); }
-            66% { transform: translate(30px, -20px) scale(0.95); }
-        }
-        @keyframes floatBlob2 {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            50% { transform: translate(50px, -40px) scale(1.15); }
-        }
+        @keyframes float1 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-80px, 50px) scale(1.1); } }
+        @keyframes float2 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(60px, -50px); } }
 
         .noise-overlay {
-            position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0.03;
+            position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0.025;
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
         }
         .grid-pattern {
-            position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0.04;
+            position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0.03;
             background-image: linear-gradient(var(--fg) 1px, transparent 1px), linear-gradient(90deg, var(--fg) 1px, transparent 1px);
             background-size: 60px 60px;
         }
 
-        /* Upload zone */
         .upload-zone {
             border: 2px dashed var(--border); border-radius: 16px;
             transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -84,85 +74,80 @@
             background: radial-gradient(circle at center, var(--accent-glow) 0%, transparent 70%);
             opacity: 0; transition: opacity 0.4s ease;
         }
-        .upload-zone:hover, .upload-zone.drag-over {
-            border-color: var(--accent); background: rgba(212, 148, 58, 0.04);
-        }
+        .upload-zone:hover, .upload-zone.drag-over { border-color: var(--accent); background: rgba(212, 148, 58, 0.03); }
         .upload-zone:hover::before, .upload-zone.drag-over::before { opacity: 1; }
-        .upload-zone.drag-over {
-            transform: scale(1.005); box-shadow: 0 0 50px var(--accent-glow);
-        }
+        .upload-zone.drag-over { transform: scale(1.005); box-shadow: 0 0 50px var(--accent-glow); }
+        .upload-zone.uploading { border-color: var(--success); pointer-events: none; }
 
         .upload-icon-ring {
-            width: 80px; height: 80px; border-radius: 50%;
-            border: 2px solid var(--border); display: flex;
-            align-items: center; justify-content: center;
+            width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
             transition: all 0.4s ease; position: relative;
         }
-        .upload-zone:hover .upload-icon-ring {
-            border-color: var(--accent); box-shadow: 0 0 20px var(--accent-glow);
-        }
+        .upload-zone:hover .upload-icon-ring { border-color: var(--accent); box-shadow: 0 0 20px var(--accent-glow); }
         .upload-icon-ring::after {
             content: ''; position: absolute; inset: -6px; border-radius: 50%;
             border: 1px solid transparent; animation: ringPulse 3s ease-in-out infinite;
         }
-        @keyframes ringPulse {
-            0%, 100% { border-color: transparent; transform: scale(1); }
-            50% { border-color: rgba(212, 148, 58, 0.2); transform: scale(1.08); }
-        }
+        @keyframes ringPulse { 0%, 100% { border-color: transparent; transform: scale(1); } 50% { border-color: rgba(212, 148, 58, 0.15); transform: scale(1.08); } }
 
         .file-input-hidden { position: absolute; inset: 0; opacity: 0; cursor: pointer; z-index: 5; }
 
-        /* Image card */
         .image-card {
-            background: var(--card); border: 1px solid var(--border);
-            border-radius: 14px; overflow: hidden;
-            transition: all 0.35s ease;
-            animation: cardIn 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-            opacity: 0;
+            background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+            overflow: hidden; transition: all 0.35s ease;
+            animation: cardIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; opacity: 0;
         }
-        .image-card:hover {
-            border-color: rgba(212, 148, 58, 0.3);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-            transform: translateY(-3px);
-        }
-        @keyframes cardIn {
-            from { opacity: 0; transform: translateY(24px) scale(0.97); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
+        .image-card:hover { border-color: rgba(212, 148, 58, 0.3); box-shadow: 0 8px 32px rgba(0,0,0,0.4); transform: translateY(-3px); }
+        @keyframes cardIn { from { opacity: 0; transform: translateY(24px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
         .card-preview {
             width: 100%; height: 200px; object-fit: contain;
-            background: repeating-conic-gradient(#1a1a1a 0% 25%, #222 0% 50%) 0 0 / 18px 18px;
+            background: repeating-conic-gradient(#141414 0% 25%, #1c1c1c 0% 50%) 0 0 / 18px 18px;
             display: block; cursor: pointer; transition: filter 0.3s ease;
         }
         .card-preview:hover { filter: brightness(1.08); }
 
-        .card-info-row {
-            display: flex; align-items: center; gap: 6px;
-            font-size: 0.75rem; color: var(--muted);
+        .card-upload-progress { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--border); }
+        .card-upload-progress-fill {
+            height: 100%; width: 0%; border-radius: 0 2px 2px 0;
+            background: linear-gradient(90deg, var(--accent), var(--accent-hover)); transition: width 0.3s ease;
         }
-        .card-info-row .val { color: var(--fg); font-weight: 500; }
+        .card-upload-progress-fill.done { background: linear-gradient(90deg, var(--success), #5fd88a); }
 
-        /* Buttons */
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 3px 10px; border-radius: 20px; font-size: 0.68rem;
+            font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .status-badge.uploading { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-border); }
+        .status-badge.live { background: var(--success-glow); color: var(--success); border: 1px solid var(--success-border); }
+        .status-badge.error { background: rgba(196,77,77,0.1); color: var(--danger); border: 1px solid rgba(196,77,77,0.3); }
+        .status-badge .dot { width: 6px; height: 6px; border-radius: 50%; }
+        .status-badge.uploading .dot { background: var(--warn); animation: blink 1s ease infinite; }
+        .status-badge.live .dot { background: var(--success); }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        .real-link-box {
+            background: var(--bg); border: 1px solid var(--success-border); border-radius: 8px;
+            padding: 10px 12px; font-size: 0.78rem; color: var(--success);
+            word-break: break-all; line-height: 1.5; font-family: 'DM Sans', monospace;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .real-link-box a { color: var(--success); text-decoration: none; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .real-link-box a:hover { text-decoration: underline; }
+        .real-link-box .copy-mini { flex-shrink: 0; background: none; border: none; color: var(--muted); cursor: pointer; padding: 4px; transition: color 0.2s; }
+        .real-link-box .copy-mini:hover { color: var(--success); }
+
         .btn-primary {
-            background: var(--accent); color: #0f0f0f; font-weight: 600;
+            background: var(--accent); color: #0a0a0a; font-weight: 600;
             padding: 10px 18px; border-radius: 9px; border: none; cursor: pointer;
             font-family: 'Space Grotesk', sans-serif; font-size: 0.85rem;
             transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 7px;
         }
-        .btn-primary:hover {
-            background: var(--accent-hover); transform: translateY(-2px);
-            box-shadow: 0 8px 24px var(--accent-glow);
-        }
+        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-2px); box-shadow: 0 8px 24px var(--accent-glow); }
         .btn-primary:active { transform: translateY(0); }
-        .btn-primary:disabled {
-            opacity: 0.4; cursor: not-allowed; transform: none !important;
-            box-shadow: none !important;
-        }
-
-        .btn-primary-lg {
-            padding: 13px 24px; font-size: 0.95rem; border-radius: 11px;
-        }
+        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
 
         .btn-sm {
             padding: 7px 12px; border-radius: 7px; border: 1px solid var(--border);
@@ -172,160 +157,85 @@
         }
         .btn-sm:hover { border-color: var(--muted); background: var(--border); }
 
+        .btn-download {
+            padding: 7px 12px; border-radius: 7px; border: 1px solid var(--accent);
+            background: rgba(212,148,58,0.08); color: var(--accent); cursor: pointer;
+            font-family: 'DM Sans', sans-serif; font-size: 0.78rem; font-weight: 600;
+            transition: all 0.25s ease; display: inline-flex; align-items: center; gap: 5px;
+        }
+        .btn-download:hover { background: rgba(212,148,58,0.18); transform: translateY(-1px); box-shadow: 0 4px 12px var(--accent-glow); }
+
         .btn-danger-sm {
-            padding: 7px 12px; border-radius: 7px;
-            border: 1px solid rgba(196,77,77,0.25); background: transparent;
-            color: var(--danger); cursor: pointer; font-size: 0.78rem;
+            padding: 7px 12px; border-radius: 7px; border: 1px solid rgba(196,77,77,0.2);
+            background: transparent; color: var(--danger); cursor: pointer; font-size: 0.78rem;
             transition: all 0.25s ease; display: inline-flex; align-items: center; gap: 5px;
         }
         .btn-danger-sm:hover { background: rgba(196,77,77,0.1); border-color: var(--danger); }
 
         .btn-outline-accent {
-            padding: 10px 18px; border-radius: 9px;
-            border: 1px solid var(--accent); background: transparent;
-            color: var(--accent); cursor: pointer;
+            padding: 10px 18px; border-radius: 9px; border: 1px solid var(--accent);
+            background: transparent; color: var(--accent); cursor: pointer;
             font-family: 'Space Grotesk', sans-serif; font-size: 0.85rem; font-weight: 500;
             transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 7px;
         }
-        .btn-outline-accent:hover {
-            background: rgba(212,148,58,0.1); transform: translateY(-2px);
-        }
+        .btn-outline-accent:hover { background: rgba(212,148,58,0.1); transform: translateY(-2px); }
 
-        /* Summary bar */
+        .btn-success {
+            padding: 10px 18px; border-radius: 9px; border: 1px solid var(--success-border);
+            background: var(--success-glow); color: var(--success); cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif; font-size: 0.85rem; font-weight: 600;
+            transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 7px;
+        }
+        .btn-success:hover { background: rgba(61,186,106,0.2); transform: translateY(-2px); box-shadow: 0 6px 20px var(--success-glow); }
+        .btn-success:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+        .btn-zip {
+            padding: 10px 18px; border-radius: 9px; border: 1px solid rgba(212,148,58,0.4);
+            background: linear-gradient(135deg, rgba(212,148,58,0.12), rgba(212,148,58,0.04));
+            color: var(--accent); cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif; font-size: 0.85rem; font-weight: 600;
+            transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 7px;
+        }
+        .btn-zip:hover { background: linear-gradient(135deg, rgba(212,148,58,0.22), rgba(212,148,58,0.1)); transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); }
+        .btn-zip:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
         .summary-bar {
-            background: var(--card); border: 1px solid var(--border);
-            border-radius: 12px; padding: 14px 20px;
-            display: flex; align-items: center; justify-content: space-between;
-            flex-wrap: wrap; gap: 12px;
+            background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+            padding: 14px 20px; display: flex; align-items: center;
+            justify-content: space-between; flex-wrap: wrap; gap: 12px;
         }
-        .summary-stat {
-            display: flex; align-items: center; gap: 8px; font-size: 0.85rem;
-        }
-        .summary-stat .num {
-            font-family: 'Space Grotesk', sans-serif; font-weight: 700;
-            font-size: 1.15rem; color: var(--accent);
-        }
+        .summary-stat { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+        .summary-stat .num { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.15rem; color: var(--accent); }
         .summary-stat .lbl { color: var(--muted); }
 
-        /* Modal */
-        .modal-overlay {
-            position: fixed; inset: 0; z-index: 100;
-            background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
-            display: flex; align-items: center; justify-content: center;
-            padding: 20px; opacity: 0; pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-        .modal-overlay.active { opacity: 1; pointer-events: auto; }
-        .modal-box {
-            background: var(--card); border: 1px solid var(--border);
-            border-radius: 16px; padding: 28px; max-width: 600px; width: 100%;
-            transform: scale(0.95) translateY(10px);
-            transition: transform 0.3s ease;
-            max-height: 85vh; overflow-y: auto;
-        }
-        .modal-overlay.active .modal-box { transform: scale(1) translateY(0); }
+        .progress-bar-track { width: 100%; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-hover)); border-radius: 2px; width: 0%; transition: width 0.3s ease; }
 
-        /* Tab buttons */
-        .tab-btn {
-            padding: 9px 16px; border-radius: 8px; border: 1px solid var(--border);
-            background: transparent; color: var(--muted); cursor: pointer;
-            font-family: 'Space Grotesk', sans-serif; font-size: 0.82rem; font-weight: 500;
-            transition: all 0.25s ease; display: inline-flex; align-items: center; gap: 6px;
-            white-space: nowrap;
-        }
-        .tab-btn:hover { border-color: var(--muted); color: var(--fg); }
-        .tab-btn.active-tab {
-            border-color: var(--accent); color: var(--accent);
-            background: rgba(212,148,58,0.08);
-        }
-        .tab-btn .tab-badge {
-            font-size: 0.65rem; padding: 2px 6px; border-radius: 4px;
-            font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;
-        }
-        .tab-badge.perm { background: rgba(77,170,109,0.15); color: var(--success); }
-        .tab-badge.temp { background: var(--warn-bg); color: var(--warn); }
-        .tab-badge.save { background: rgba(212,148,58,0.12); color: var(--accent); }
-
-        .modal-link-box {
-            background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-            padding: 12px 14px; font-size: 0.78rem; color: var(--accent);
-            word-break: break-all; line-height: 1.5; max-height: 160px;
-            overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent;
-            font-family: 'DM Sans', monospace;
-        }
-
-        /* Warning banner */
-        .warn-banner {
-            background: var(--warn-bg); border: 1px solid var(--warn-border);
-            border-radius: 8px; padding: 10px 14px;
-            display: flex; align-items: flex-start; gap: 10px;
-            font-size: 0.8rem; color: var(--warn); line-height: 1.5;
-        }
-        .warn-banner i { margin-top: 2px; flex-shrink: 0; }
-
-        /* Success banner */
-        .success-banner {
-            background: rgba(77,170,109,0.08); border: 1px solid rgba(77,170,109,0.25);
-            border-radius: 8px; padding: 10px 14px;
-            display: flex; align-items: flex-start; gap: 10px;
-            font-size: 0.8rem; color: var(--success); line-height: 1.5;
-        }
-        .success-banner i { margin-top: 2px; flex-shrink: 0; }
-
-        /* Info banner */
-        .info-banner {
-            background: rgba(212,148,58,0.06); border: 1px solid rgba(212,148,58,0.2);
-            border-radius: 8px; padding: 10px 14px;
-            display: flex; align-items: flex-start; gap: 10px;
-            font-size: 0.8rem; color: var(--muted); line-height: 1.5;
-        }
-        .info-banner i { margin-top: 2px; flex-shrink: 0; color: var(--accent); }
-
-        /* Size comparison */
-        .size-compare {
-            display: flex; align-items: center; gap: 12px;
-            padding: 10px 14px; border-radius: 8px;
-            background: var(--bg); border: 1px solid var(--border);
-            font-size: 0.78rem;
-        }
-        .size-compare .size-item { display: flex; flex-direction: column; gap: 2px; }
-        .size-compare .size-label { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; }
-        .size-compare .size-val { font-family: 'Space Grotesk', sans-serif; font-weight: 600; color: var(--fg); }
-        .size-compare .size-arrow { color: var(--border); font-size: 1rem; }
-
-        /* Progress bar */
-        .progress-bar-track {
-            width: 100%; height: 4px; background: var(--border);
-            border-radius: 2px; overflow: hidden;
-        }
-        .progress-bar-fill {
-            height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-hover));
-            border-radius: 2px; width: 0%; transition: width 0.3s ease;
-        }
-
-        /* Toast */
-        .toast-container {
-            position: fixed; top: 24px; right: 24px; z-index: 200;
-            display: flex; flex-direction: column; gap: 10px;
-        }
+        .toast-container { position: fixed; top: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 10px; }
         .toast {
             background: var(--card); border: 1px solid var(--border); border-radius: 10px;
             padding: 14px 20px; display: flex; align-items: center; gap: 10px;
             font-size: 0.88rem; box-shadow: 0 12px 40px rgba(0,0,0,0.5);
-            animation: toastIn 0.4s cubic-bezier(0.25,0.46,0.45,0.94) forwards;
-            min-width: 260px;
+            animation: toastIn 0.4s cubic-bezier(0.25,0.46,0.45,0.94) forwards; min-width: 260px;
         }
         .toast.leaving { animation: toastOut 0.3s ease forwards; }
-        @keyframes toastIn {
-            from { opacity: 0; transform: translateX(40px) scale(0.95); }
-            to { opacity: 1; transform: translateX(0) scale(1); }
-        }
-        @keyframes toastOut {
-            from { opacity: 1; transform: translateX(0) scale(1); }
-            to { opacity: 0; transform: translateX(40px) scale(0.95); }
-        }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(40px) scale(0.95); } to { opacity: 1; transform: translateX(0) scale(1); } }
+        @keyframes toastOut { from { opacity: 1; transform: translateX(0) scale(1); } to { opacity: 0; transform: translateX(40px) scale(0.95); } }
 
-        /* Particles */
+        .lightbox {
+            position: fixed; inset: 0; z-index: 150; background: rgba(0,0,0,0.88);
+            backdrop-filter: blur(12px); display: flex; align-items: center;
+            justify-content: center; padding: 30px; opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease; cursor: zoom-out;
+        }
+        .lightbox.active { opacity: 1; pointer-events: auto; }
+        .lightbox img {
+            max-width: 92vw; max-height: 88vh; object-fit: contain; border-radius: 8px;
+            background: repeating-conic-gradient(#141414 0% 25%, #1c1c1c 0% 50%) 0 0 / 20px 20px;
+            transform: scale(0.92); transition: transform 0.35s ease;
+        }
+        .lightbox.active img { transform: scale(1); }
+
         .particle {
             position: fixed; width: 3px; height: 3px; background: var(--accent);
             border-radius: 50%; pointer-events: none; z-index: 0; opacity: 0;
@@ -333,56 +243,65 @@
         }
         @keyframes particleFloat {
             0% { opacity: 0; transform: translateY(0) scale(0); }
-            10% { opacity: 0.5; transform: scale(1); }
-            90% { opacity: 0.05; }
+            10% { opacity: 0.4; transform: scale(1); }
+            90% { opacity: 0.03; }
             100% { opacity: 0; transform: translateY(-100vh) scale(0.5); }
         }
 
-        /* Lightbox */
-        .lightbox {
-            position: fixed; inset: 0; z-index: 150;
-            background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
-            display: flex; align-items: center; justify-content: center;
-            padding: 30px; opacity: 0; pointer-events: none;
-            transition: opacity 0.3s ease; cursor: zoom-out;
+        .confetti-piece {
+            position: fixed; z-index: 300; pointer-events: none; width: 8px; height: 8px; border-radius: 2px;
+            animation: confettiFall 2.5s ease-out forwards;
         }
-        .lightbox.active { opacity: 1; pointer-events: auto; }
-        .lightbox img {
-            max-width: 90vw; max-height: 85vh; object-fit: contain;
-            border-radius: 8px;
-            background: repeating-conic-gradient(#1a1a1a 0% 25%, #222 0% 50%) 0 0 / 20px 20px;
-            transform: scale(0.9); transition: transform 0.35s ease;
+        @keyframes confettiFall {
+            0% { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
+            100% { opacity: 0; transform: translateY(100vh) rotate(720deg) scale(0.3); }
         }
-        .lightbox.active img { transform: scale(1); }
 
-        /* Loading spinner for base64 */
-        .b64-loading {
-            display: inline-flex; align-items: center; gap: 8px;
-            color: var(--muted); font-size: 0.82rem; padding: 8px 0;
+        /* ZIP progress overlay */
+        .zip-overlay {
+            position: fixed; inset: 0; z-index: 160;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
         }
-        .b64-loading .spinner {
-            width: 14px; height: 14px; border: 2px solid var(--border);
+        .zip-overlay.active { opacity: 1; pointer-events: auto; }
+        .zip-box {
+            background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+            padding: 32px 40px; text-align: center; min-width: 300px;
+            transform: scale(0.95); transition: transform 0.3s ease;
+        }
+        .zip-overlay.active .zip-box { transform: scale(1); }
+        .zip-spinner {
+            width: 48px; height: 48px; border: 3px solid var(--border);
             border-top-color: var(--accent); border-radius: 50%;
-            animation: spin 0.7s linear infinite;
+            animation: spin 0.8s linear infinite; margin: 0 auto 16px;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .zip-progress-track {
+            width: 100%; height: 6px; background: var(--border); border-radius: 3px;
+            overflow: hidden; margin-top: 12px;
+        }
+        .zip-progress-fill {
+            height: 100%; width: 0%; border-radius: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+            transition: width 0.3s ease;
+        }
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
         @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
-                animation-duration: 0.01ms !important;
-                transition-duration: 0.01ms !important;
-            }
+            *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
         }
-
         @media (max-width: 640px) {
             .card-preview { height: 150px; }
             .summary-bar { flex-direction: column; align-items: flex-start; }
-            .modal-box { padding: 20px; }
-            .tab-btn { font-size: 0.75rem; padding: 7px 10px; }
+            .summary-bar .flex { width: 100%; }
+            .summary-bar .flex .btn-zip,
+            .summary-bar .flex .btn-primary,
+            .summary-bar .flex .btn-success,
+            .summary-bar .flex .btn-outline-accent { flex: 1; justify-content: center; font-size: 0.78rem; padding: 9px 12px; }
         }
     </style>
 </head>
@@ -393,40 +312,20 @@
     <div id="particles"></div>
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- Lightbox -->
-    <div class="lightbox" id="lightbox" role="dialog" aria-label="Image preview">
-        <img id="lightboxImg" alt="Full size preview">
-    </div>
-
-    <!-- Link Modal -->
-    <div class="modal-overlay" id="linkModal" role="dialog" aria-label="Image links">
-        <div class="modal-box">
-            <div class="flex items-center justify-between mb-5">
-                <h3 class="text-lg font-semibold" id="modalTitle">Links</h3>
-                <button class="btn-sm" id="closeModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-
-            <!-- Tabs -->
-            <div class="flex gap-2 mb-5 flex-wrap" id="modalTabs">
-                <button class="tab-btn active-tab" data-tab="download">
-                    <i class="fa-solid fa-download text-xs"></i> Download
-                    <span class="tab-badge save">Best</span>
-                </button>
-                <button class="tab-btn" data-tab="base64">
-                    <i class="fa-solid fa-link text-xs"></i> Permanent Link
-                    <span class="tab-badge perm">Works forever</span>
-                </button>
-                <button class="tab-btn" data-tab="blob">
-                    <i class="fa-solid fa-bolt text-xs"></i> Quick Ref
-                    <span class="tab-badge temp">Temp</span>
-                </button>
-            </div>
-
-            <!-- Tab content -->
-            <div id="tabContent">
-                <!-- Filled by JS -->
+    <!-- ZIP Progress Overlay -->
+    <div class="zip-overlay" id="zipOverlay">
+        <div class="zip-box">
+            <div class="zip-spinner"></div>
+            <h3 class="text-lg font-semibold mb-1" style="font-family:'Space Grotesk',sans-serif;">Creating ZIP</h3>
+            <p class="text-sm" style="color:var(--muted);" id="zipStatus">Fetching images...</p>
+            <div class="zip-progress-track">
+                <div class="zip-progress-fill" id="zipProgressFill"></div>
             </div>
         </div>
+    </div>
+
+    <div class="lightbox" id="lightbox" role="dialog" aria-label="Image preview">
+        <img id="lightboxImg" alt="Full size preview">
     </div>
 
     <main class="relative z-10 min-h-screen flex flex-col">
@@ -434,46 +333,42 @@
             <div class="max-w-6xl mx-auto flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: var(--accent);">
-                        <i class="fa-solid fa-images text-sm" style="color: var(--bg);"></i>
+                        <i class="fa-solid fa-cloud-arrow-up text-sm" style="color: var(--bg);"></i>
                     </div>
                     <span class="font-semibold text-lg" style="font-family: 'Space Grotesk', sans-serif;">SnapLink-Images</span>
+                    <span class="text-xs px-2 py-0.5 rounded-full" style="background: var(--success-glow); color: var(--success); border: 1px solid var(--success-border); font-weight: 600;">LIVE</span>
                 </div>
                 <div class="flex items-center gap-2 text-xs" style="color: var(--muted);">
-                    <i class="fa-solid fa-shield-halved"></i>
-                    <span>100% local — your files stay here</span>
+                    <i class="fa-solid fa-globe" style="color: var(--success);"></i>
+                    <span>imgbb Cloud-hosted permanent links</span>
                 </div>
             </div>
         </header>
 
         <section class="flex-1 px-6 md:px-10 pb-16">
             <div class="max-w-6xl mx-auto">
-                <div class="text-center mt-4 mb-8">
-                    <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-3">
-                        Upload Images
-                    </h1>
+                <div class="text-center mt-4 mb-6">
+                    <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-3">Upload Images</h1>
+                    <h4 class="text-4xl md:text-3xl font-bold tracking-tight mb-3">Get a Real Link</h4>
                     <p class="text-base md:text-lg max-w-xl mx-auto" style="color: var(--muted); line-height: 1.6;">
-                        Drop as many images as you want. Download directly, get permanent Base64 links, or bundle everything into a ZIP.
+                        Drop images, they go to the cloud instantly. You get a <strong style="color:var(--success);">permanent URL</strong> + download + ZIP for each one.
                     </p>
                 </div>
 
-                <!-- Upload zone -->
                 <div class="upload-zone p-10 md:p-14 text-center relative" id="uploadZone" role="button" tabindex="0" aria-label="Click or drag to upload images">
                     <input type="file" accept="image/*" multiple class="file-input-hidden" id="fileInput" aria-label="Choose image files">
-                    <div class="relative z-10 flex flex-col items-center gap-4">
+                    <div class="relative z-10 flex flex-col items-center gap-4" id="uploadContent">
                         <div class="upload-icon-ring">
                             <i class="fa-solid fa-cloud-arrow-up text-2xl" style="color: var(--accent);"></i>
                         </div>
                         <div>
-                            <p class="text-base font-medium mb-1" style="font-family: 'Space Grotesk', sans-serif;">Drop images here</p>
-                            <p class="text-sm" style="color: var(--muted);">or click to browse — select multiple files at once</p>
+                            <p class="text-base font-medium mb-1" style="font-family: 'Space Grotesk', sans-serif;">Drop images here to upload to cloud</p>
+                            <p class="text-sm" style="color: var(--muted);">or click to browse — real shareable link + download for each</p>
                         </div>
                         <div class="flex items-center gap-3 mt-2 flex-wrap justify-center">
-                            <span class="text-xs px-3 py-1 rounded-full" style="background: var(--bg-elevated); color: var(--muted); border: 1px solid var(--border);">PNG</span>
-                            <span class="text-xs px-3 py-1 rounded-full" style="background: var(--bg-elevated); color: var(--muted); border: 1px solid var(--border);">JPG</span>
-                            <span class="text-xs px-3 py-1 rounded-full" style="background: var(--bg-elevated); color: var(--muted); border: 1px solid var(--border);">WebP</span>
-                            <span class="text-xs px-3 py-1 rounded-full" style="background: var(--bg-elevated); color: var(--muted); border: 1px solid var(--border);">GIF</span>
-                            <span class="text-xs px-3 py-1 rounded-full" style="background: var(--bg-elevated); color: var(--muted); border: 1px solid var(--border);">SVG</span>
-                            <span class="text-xs px-3 py-1 rounded-full" style="background: var(--bg-elevated); color: var(--muted); border: 1px solid var(--border);">Max 50 MB each</span>
+                            <span class="text-xs px-3 py-1 rounded-full" style="background: var(--bg-elevated); color: var(--muted); border: 1px solid var(--border);">PNG / JPG / WebP / GIF</span>
+                            <span class="text-xs px-3 py-1 rounded-full" style="background: var(--success-glow); color: var(--success); border: 1px solid var(--success-border);">Permanent links</span>
+                            <span class="text-xs px-3 py-1 rounded-full" style="background: rgba(212,148,58,0.08); color: var(--accent); border: 1px solid rgba(212,148,58,0.25);">Download + ZIP</span>
                         </div>
                     </div>
                 </div>
@@ -482,7 +377,6 @@
                     <div class="progress-bar-fill" id="progressFill"></div>
                 </div>
 
-                <!-- Summary bar -->
                 <div class="summary-bar mt-8 hidden" id="summaryBar">
                     <div class="flex items-center gap-6 flex-wrap">
                         <div class="summary-stat">
@@ -490,16 +384,19 @@
                             <span class="lbl">images</span>
                         </div>
                         <div class="summary-stat">
-                            <span class="num" id="totalSize">0 B</span>
-                            <span class="lbl">total</span>
+                            <span class="num" id="liveCount">0</span>
+                            <span class="lbl">live links</span>
                         </div>
                     </div>
                     <div class="flex items-center gap-3 flex-wrap">
-                        <button class="btn-primary" id="downloadAllBtn" disabled>
+                        <button class="btn-zip" id="downloadZipBtn" disabled>
                             <i class="fa-solid fa-file-zipper"></i> Download ZIP
                         </button>
-                        <button class="btn-primary" id="saveAllFilesBtn" disabled style="background: var(--success);">
-                            <i class="fa-solid fa-download"></i> Save All Files
+                        <button class="btn-primary" id="downloadAllBtn" disabled>
+                            <i class="fa-solid fa-download"></i> Download All
+                        </button>
+                        <button class="btn-success" id="copyAllLinksBtn" disabled>
+                            <i class="fa-regular fa-copy"></i> Copy All Links
                         </button>
                         <button class="btn-outline-accent" id="addMoreBtn">
                             <i class="fa-solid fa-plus"></i> Add More
@@ -510,7 +407,6 @@
                     </div>
                 </div>
 
-                <!-- Gallery -->
                 <div id="gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-6"></div>
             </div>
         </section>
@@ -521,9 +417,13 @@
     </main>
 
     <script>
+        // ── Config ──
+        const API_KEY = '3fe550785c99eab06dda03689f9e4ad7';
+
         // ── State ──
         const imageStore = [];
         let idCounter = 0;
+        let isUploading = false;
 
         // ── DOM ──
         const uploadZone = document.getElementById('uploadZone');
@@ -532,33 +432,29 @@
         const progressFill = document.getElementById('progressFill');
         const summaryBar = document.getElementById('summaryBar');
         const totalCountEl = document.getElementById('totalCount');
-        const totalSizeEl = document.getElementById('totalSize');
+        const liveCountEl = document.getElementById('liveCount');
         const gallery = document.getElementById('gallery');
-        const downloadAllBtn = document.getElementById('downloadAllBtn');
-        const saveAllFilesBtn = document.getElementById('saveAllFilesBtn');
         const addMoreBtn = document.getElementById('addMoreBtn');
         const clearAllBtn = document.getElementById('clearAllBtn');
+        const copyAllLinksBtn = document.getElementById('copyAllLinksBtn');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+        const downloadZipBtn = document.getElementById('downloadZipBtn');
+        const zipOverlay = document.getElementById('zipOverlay');
+        const zipStatus = document.getElementById('zipStatus');
+        const zipProgressFill = document.getElementById('zipProgressFill');
         const lightbox = document.getElementById('lightbox');
         const lightboxImg = document.getElementById('lightboxImg');
-        const linkModal = document.getElementById('linkModal');
-        const modalTitle = document.getElementById('modalTitle');
-        const modalTabs = document.getElementById('modalTabs');
-        const tabContent = document.getElementById('tabContent');
-        const closeModalBtn = document.getElementById('closeModal');
         const toastContainer = document.getElementById('toastContainer');
-
-        let currentModalEntry = null;
-        let currentModalTab = 'download';
 
         // ── Particles ──
         (function() {
             const c = document.getElementById('particles');
-            for (let i = 0; i < 12; i++) {
+            for (let i = 0; i < 10; i++) {
                 const p = document.createElement('div');
                 p.className = 'particle';
                 p.style.left = Math.random() * 100 + 'vw';
-                p.style.animationDuration = (8 + Math.random() * 14) + 's';
-                p.style.animationDelay = (Math.random() * 10) + 's';
+                p.style.animationDuration = (10 + Math.random() * 16) + 's';
+                p.style.animationDelay = (Math.random() * 12) + 's';
                 const s = 2 + Math.random() * 3;
                 p.style.width = p.style.height = s + 'px';
                 c.appendChild(p);
@@ -576,10 +472,7 @@
             t.className = 'toast';
             t.innerHTML = `${icons[type] || icons.info}<span>${msg}</span>`;
             toastContainer.appendChild(t);
-            setTimeout(() => {
-                t.classList.add('leaving');
-                t.addEventListener('animationend', () => t.remove());
-            }, 2800);
+            setTimeout(() => { t.classList.add('leaving'); t.addEventListener('animationend', () => t.remove()); }, 3200);
         }
 
         // ── Helpers ──
@@ -589,96 +482,126 @@
             const i = Math.floor(Math.log(b) / Math.log(k));
             return parseFloat((b / Math.pow(k, i)).toFixed(2)) + ' ' + s[i];
         }
+        function ext(name) { const p = name.split('.'); return p.length > 1 ? p.pop().toUpperCase() : '?'; }
+        function truncate(s, n) { return s.length > n ? s.substring(0, n - 2) + '...' : s; }
 
-        function ext(name) {
-            const p = name.split('.');
-            return p.length > 1 ? p.pop().toUpperCase() : '?';
+        async function copyText(text) {
+            try { await navigator.clipboard.writeText(text); return true; }
+            catch {
+                const ta = document.createElement('textarea');
+                ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+                document.body.appendChild(ta); ta.select();
+                try { document.execCommand('copy'); return true; } catch { return false; }
+                finally { document.body.removeChild(ta); }
+            }
         }
 
-        function truncate(s, n) {
-            return s.length > n ? s.substring(0, n - 2) + '...' : s;
+        // ── Confetti ──
+        function confettiBurst(x, y) {
+            const colors = ['#d4943a', '#e8a838', '#3dba6a', '#5fd88a', '#f0ebe3', '#c44d4d'];
+            for (let i = 0; i < 28; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'confetti-piece';
+                piece.style.left = x + 'px';
+                piece.style.top = y + 'px';
+                piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+                piece.style.transform = `translate(${(Math.random() - 0.5) * 300}px, 0)`;
+                piece.style.animationDuration = (1.5 + Math.random() * 1.5) + 's';
+                piece.style.animationDelay = (Math.random() * 0.2) + 's';
+                piece.style.width = (5 + Math.random() * 6) + 'px';
+                piece.style.height = (5 + Math.random() * 6) + 'px';
+                piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+                document.body.appendChild(piece);
+                setTimeout(() => piece.remove(), 3000);
+            }
+        }
+
+        // ── Upload to imgbb ──
+        async function uploadToImgbb(file) {
+            const formData = new FormData();
+            formData.append('image', file);
+            const resp = await fetch(`https://api.imgbb.com/1/upload?key=${API_KEY}`, { method: 'POST', body: formData });
+            const data = await resp.json();
+            if (!data.success) throw new Error(data.error?.message || 'Upload failed');
+            return {
+                url: data.data.url,
+                thumb: data.data.thumb?.url || data.data.url,
+                deleteUrl: data.data.delete_url || '',
+                displayUrl: data.data.display_url || data.data.url,
+                size: data.data.size ? parseInt(data.data.size) : file.size
+            };
         }
 
         // ── Drag & Drop ──
-        uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+        uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); if (!isUploading) uploadZone.classList.add('drag-over'); });
         uploadZone.addEventListener('dragleave', (e) => { e.preventDefault(); uploadZone.classList.remove('drag-over'); });
-        uploadZone.addEventListener('drop', (e) => {
-            e.preventDefault(); uploadZone.classList.remove('drag-over');
-            handleFiles(e.dataTransfer.files);
-        });
-        uploadZone.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
-        });
+        uploadZone.addEventListener('drop', (e) => { e.preventDefault(); uploadZone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+        uploadZone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!isUploading) fileInput.click(); } });
         fileInput.addEventListener('change', (e) => { handleFiles(e.target.files); fileInput.value = ''; });
-        addMoreBtn.addEventListener('click', () => fileInput.click());
+        addMoreBtn.addEventListener('click', () => { if (!isUploading) fileInput.click(); });
 
-        // ── Handle multiple files ──
+        // ── Handle files ──
         async function handleFiles(fileList) {
+            if (isUploading) return;
+
             const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
             const rejected = Array.from(fileList).length - files.length;
             if (rejected > 0) showToast(`${rejected} non-image file(s) skipped.`, 'error');
 
-            const oversized = files.filter(f => f.size > 50 * 1024 * 1024);
+            const oversized = files.filter(f => f.size > 32 * 1024 * 1024);
             if (oversized.length > 0) {
-                showToast(`${oversized.length} file(s) exceeded 50 MB.`, 'error');
+                showToast(`${oversized.length} file(s) exceeded 32 MB.`, 'error');
                 oversized.forEach(f => { const i = files.indexOf(f); if (i > -1) files.splice(i, 1); });
             }
             if (files.length === 0) return;
 
+            isUploading = true;
+            uploadZone.classList.add('uploading');
             progressTrack.classList.remove('hidden');
             progressFill.style.width = '0%';
 
             let processed = 0;
             for (const file of files) {
-                try {
-                    const entry = await processFile(file);
-                    imageStore.push(entry);
-                    renderCard(entry, processed * 60);
-                } catch {
-                    showToast(`Failed: ${truncate(file.name, 20)}`, 'error');
-                }
+                const entry = {
+                    id: ++idCounter, file,
+                    blobUrl: URL.createObjectURL(file),
+                    status: 'uploading',
+                    serverData: null, errorMsg: '',
+                    width: '—', height: '—'
+                };
+
+                const img = new Image();
+                img.onload = () => { entry.width = img.naturalWidth; entry.height = img.naturalHeight; };
+                img.src = entry.blobUrl;
+
+                imageStore.push(entry);
+                renderCard(entry, processed * 80);
                 processed++;
                 progressFill.style.width = Math.round((processed / files.length) * 100) + '%';
+
+                try {
+                    const result = await uploadToImgbb(file);
+                    entry.status = 'live';
+                    entry.serverData = result;
+                    updateCardStatus(entry);
+                    const card = document.querySelector(`.image-card[data-id="${entry.id}"]`);
+                    if (card) { const r = card.getBoundingClientRect(); confettiBurst(r.left + r.width / 2, r.top + 60); }
+                } catch (err) {
+                    entry.status = 'error';
+                    entry.errorMsg = err.message || 'Upload failed';
+                    updateCardStatus(entry);
+                    showToast(`${truncate(file.name, 20)}: ${entry.errorMsg}`, 'error');
+                }
+                updateSummary();
             }
 
             setTimeout(() => {
                 progressTrack.classList.add('hidden');
-                updateSummary();
-                showToast(`${processed} image(s) added!`, 'success');
-            }, 350);
-        }
-
-        function processFile(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const blob = new Blob([e.target.result], { type: file.type });
-                    const blobUrl = URL.createObjectURL(blob);
-                    const b64Reader = new FileReader();
-                    let base64 = '';
-                    b64Reader.onload = (ev) => {
-                        base64 = ev.target.result;
-                        const entry = imageStore.find(x => x.blobUrl === blobUrl);
-                        if (entry) entry.base64 = base64;
-                    };
-                    b64Reader.readAsDataURL(file);
-
-                    const img = new Image();
-                    img.onload = () => {
-                        resolve({
-                            id: ++idCounter, file, blobUrl, base64: '',
-                            width: img.naturalWidth, height: img.naturalHeight,
-                            base64Size: 0
-                        });
-                    };
-                    img.onerror = () => {
-                        resolve({ id: ++idCounter, file, blobUrl, base64: '', width: '—', height: '—', base64Size: 0 });
-                    };
-                    img.src = blobUrl;
-                };
-                reader.onerror = reject;
-                reader.readAsArrayBuffer(file);
-            });
+                isUploading = false;
+                uploadZone.classList.remove('uploading');
+                const liveCount = imageStore.filter(e => e.status === 'live').length;
+                if (liveCount > 0) showToast(`${liveCount} image(s) uploaded with live links!`, 'success');
+            }, 400);
         }
 
         // ── Render card ──
@@ -689,241 +612,227 @@
             card.dataset.id = entry.id;
 
             card.innerHTML = `
-                <img class="card-preview" src="${entry.blobUrl}" alt="${entry.file.name}" loading="lazy">
+                <div style="position:relative;">
+                    <img class="card-preview" src="${entry.blobUrl}" alt="${entry.file.name}" loading="lazy">
+                    <div class="card-upload-progress"><div class="card-upload-progress-fill" id="progress-${entry.id}"></div></div>
+                </div>
                 <div class="p-4">
-                    <p class="text-sm font-medium mb-2" style="font-family:'Space Grotesk',sans-serif;" title="${entry.file.name}">${truncate(entry.file.name, 26)}</p>
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-sm font-medium" style="font-family:'Space Grotesk',sans-serif;" title="${entry.file.name}">${truncate(entry.file.name, 22)}</p>
+                        <span class="status-badge uploading" id="status-${entry.id}"><span class="dot"></span> Uploading</span>
+                    </div>
                     <div class="flex flex-wrap gap-x-4 gap-y-1 mb-3">
                         <div class="card-info-row"><i class="fa-solid fa-weight-scale text-xs" style="color:var(--accent);"></i><span class="val">${fmtSize(entry.file.size)}</span></div>
                         <div class="card-info-row"><i class="fa-solid fa-tag text-xs" style="color:var(--accent);"></i><span class="val">${ext(entry.file.name)}</span></div>
-                        <div class="card-info-row"><i class="fa-solid fa-expand text-xs" style="color:var(--accent);"></i><span class="val">${entry.width}×${entry.height}</span></div>
+                        <div class="card-info-row" id="dims-${entry.id}"><i class="fa-solid fa-expand text-xs" style="color:var(--accent);"></i><span class="val">${entry.width}×${entry.height}</span></div>
                     </div>
-                    <div class="flex flex-wrap gap-2">
-                        <button class="btn-sm card-download" data-id="${entry.id}" style="border-color:var(--accent);color:var(--accent);"><i class="fa-solid fa-download"></i> Download</button>
-                        <button class="btn-sm card-links" data-id="${entry.id}"><i class="fa-solid fa-link"></i> Links</button>
+                    <div id="link-area-${entry.id}" style="min-height:40px;"></div>
+                    <div class="flex flex-wrap gap-2 mt-3" id="actions-${entry.id}">
+                        <button class="btn-sm card-retry hidden" data-id="${entry.id}"><i class="fa-solid fa-rotate-right"></i> Retry</button>
                         <button class="btn-danger-sm card-remove" data-id="${entry.id}"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                 </div>
             `;
 
             card.querySelector('.card-preview').addEventListener('click', () => {
-                lightboxImg.src = entry.blobUrl;
+                lightboxImg.src = entry.serverData?.displayUrl || entry.blobUrl;
                 lightbox.classList.add('active');
             });
 
-            card.querySelector('.card-download').addEventListener('click', () => downloadEntry(entry));
-
-            card.querySelector('.card-links').addEventListener('click', () => openLinkModal(entry));
-
             card.querySelector('.card-remove').addEventListener('click', () => {
-                card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-                card.style.opacity = '0';
-                card.style.transform = 'scale(0.95)';
+                card.style.transition = 'opacity 0.3s, transform 0.3s';
+                card.style.opacity = '0'; card.style.transform = 'scale(0.95)';
                 setTimeout(() => {
                     URL.revokeObjectURL(entry.blobUrl);
                     const idx = imageStore.findIndex(x => x.id === entry.id);
                     if (idx > -1) imageStore.splice(idx, 1);
-                    card.remove();
-                    updateSummary();
+                    card.remove(); updateSummary();
                     showToast('Image removed.', 'info');
                 }, 300);
             });
 
+            card.querySelector('.card-retry').addEventListener('click', () => retryUpload(entry));
+
+            simulateProgress(entry.id);
             gallery.appendChild(card);
+            updateSummary();
         }
 
-        // ── Download helper ──
-        function downloadEntry(entry) {
-            const a = document.createElement('a');
-            a.href = entry.blobUrl;
-            a.download = entry.file.name;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            showToast('Download started!', 'success');
+        function simulateProgress(id) {
+            const bar = document.getElementById(`progress-${id}`);
+            if (!bar) return;
+            let pct = 0;
+            const iv = setInterval(() => {
+                pct += Math.random() * 15 + 5;
+                if (pct >= 90) { clearInterval(iv); return; }
+                bar.style.width = Math.min(pct, 90) + '%';
+            }, 300);
+            bar.dataset.interval = iv;
         }
 
-        // ── Link Modal ──
-        function openLinkModal(entry) {
-            currentModalEntry = entry;
-            currentModalTab = 'download';
-            modalTitle.textContent = truncate(entry.file.name, 30);
-            updateTabUI();
-            renderTabContent();
-            linkModal.classList.add('active');
-        }
+        function updateCardStatus(entry) {
+            const bar = document.getElementById(`progress-${entry.id}`);
+            const badge = document.getElementById(`status-${entry.id}`);
+            const linkArea = document.getElementById(`link-area-${entry.id}`);
+            const dims = document.getElementById(`dims-${entry.id}`);
+            const actions = document.getElementById(`actions-${entry.id}`);
+            const retryBtn = actions?.querySelector('.card-retry');
 
-        function updateTabUI() {
-            modalTabs.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.toggle('active-tab', btn.dataset.tab === currentModalTab);
-            });
-        }
+            if (bar && bar.dataset.interval) clearInterval(parseInt(bar.dataset.interval));
 
-        function renderTabContent() {
-            const e = currentModalEntry;
-            if (!e) return;
-
-            if (currentModalTab === 'download') {
-                tabContent.innerHTML = `
-                    <div class="success-banner mb-4">
-                        <i class="fa-solid fa-circle-check"></i>
-                        <div>
-                            <strong>Save the file directly</strong> — this is the most reliable way.
-                            The file is saved to your device as <code style="color:var(--fg);background:var(--bg);padding:1px 5px;border-radius:3px;">${e.file.name}</code> (${fmtSize(e.file.size)}).
-                            It never expires and you can share the actual file with anyone.
+            if (entry.status === 'live') {
+                if (bar) { bar.style.width = '100%'; bar.classList.add('done'); }
+                if (badge) { badge.className = 'status-badge live'; badge.innerHTML = '<span class="dot"></span> Live'; }
+                if (dims) dims.innerHTML = `<i class="fa-solid fa-expand text-xs" style="color:var(--accent);"></i><span class="val">${entry.width}×${entry.height}</span>`;
+                if (retryBtn) retryBtn.classList.add('hidden');
+                if (linkArea) {
+                    linkArea.innerHTML = `
+                        <div class="real-link-box mb-2">
+                            <i class="fa-solid fa-link text-xs" style="flex-shrink:0;"></i>
+                            <a href="${entry.serverData.url}" target="_blank" rel="noopener" title="${entry.serverData.url}">${entry.serverData.url}</a>
+                            <button class="copy-mini" title="Copy link" data-copy="${entry.serverData.url}"><i class="fa-regular fa-copy"></i></button>
                         </div>
-                    </div>
-                    <button class="btn-primary btn-primary-lg w-full justify-center" onclick="downloadEntry(currentModalEntry); document.getElementById('linkModal').classList.remove('active');">
-                        <i class="fa-solid fa-download"></i> Save File to Device
-                    </button>
-                `;
-            } else if (currentModalTab === 'base64') {
-                const b64 = e.base64;
-                const b64Size = b64 ? b64.length : 0;
-                const ratio = e.file.size > 0 ? Math.round((b64Size / e.file.size) * 100) : 0;
-
-                if (!b64) {
-                    tabContent.innerHTML = `
-                        <div class="b64-loading"><div class="spinner"></div> Generating Base64 data...</div>
-                        <p class="text-xs mt-2" style="color:var(--muted);">Large images may take a moment.</p>
+                        <div class="flex gap-2 flex-wrap">
+                            <button class="btn-download card-dl" data-url="${entry.serverData.url}" data-name="${entry.file.name}">
+                                <i class="fa-solid fa-download"></i> Download
+                            </button>
+                            <button class="btn-sm" data-copy="<img src=&quot;${entry.serverData.url}&quot; alt=&quot;${entry.file.name}&quot; />" title="Copy as HTML">
+                                <i class="fa-solid fa-code"></i> &lt;img&gt;
+                            </button>
+                            <button class="btn-sm" data-copy="[![${entry.file.name}](${entry.serverData.url})]" title="Copy as Markdown">
+                                <i class="fa-brands fa-markdown"></i> MD
+                            </button>
+                            <a href="${entry.serverData.url}" target="_blank" rel="noopener" class="btn-sm" style="color:var(--success);border-color:var(--success-border);">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i> Open
+                            </a>
+                        </div>
                     `;
-                    // Poll until ready
-                    const check = setInterval(() => {
-                        if (currentModalEntry && currentModalEntry.base64) {
-                            clearInterval(check);
-                            if (currentModalTab === 'base64') renderTabContent();
-                        } else if (!currentModalEntry) {
-                            clearInterval(check);
-                        }
-                    }, 150);
-                    return;
+                    linkArea.querySelectorAll('[data-copy]').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const text = btn.dataset.copy.replace(/&quot;/g, '"');
+                            copyText(text); showToast('Copied!', 'success');
+                        });
+                    });
+                    const dlBtn = linkArea.querySelector('.card-dl');
+                    if (dlBtn) {
+                        dlBtn.addEventListener('click', () => downloadFromUrl(dlBtn.dataset.url, dlBtn.dataset.name));
+                    }
                 }
-
-                tabContent.innerHTML = `
-                    <div class="success-banner mb-3">
-                        <i class="fa-solid fa-infinity"></i>
-                        <div><strong>This link never expires.</strong> Base64 encodes the entire image as text. You can paste it anywhere — emails, docs, code — and it will always work.</div>
-                    </div>
-                    <div class="size-compare mb-4">
-                        <div class="size-item">
-                            <span class="size-label">Original</span>
-                            <span class="size-val">${fmtSize(e.file.size)}</span>
-                        </div>
-                        <span class="size-arrow"><i class="fa-solid fa-arrow-right"></i></span>
-                        <div class="size-item">
-                            <span class="size-label">Base64</span>
-                            <span class="size-val">${fmtSize(b64Size)}</span>
-                        </div>
-                        <div class="size-item" style="margin-left:auto;">
-                            <span class="size-label">Overhead</span>
-                            <span class="size-val" style="color:var(--warn);">+${ratio - 100}%</span>
-                        </div>
-                    </div>
-                    <div class="modal-link-box mb-4">${b64}</div>
-                    <div class="flex gap-3">
-                        <button class="btn-primary flex-1 justify-center" id="copyB64Btn">
-                            <i class="fa-regular fa-copy"></i> Copy Base64
-                        </button>
-                        <button class="btn-sm" id="copyAsImgBtn" title="Copy as &lt;img&gt; tag">
-                            <i class="fa-solid fa-code"></i> As &lt;img&gt;
-                        </button>
-                    </div>
-                    <div class="info-banner mt-3">
-                        <i class="fa-solid fa-lightbulb"></i>
-                        <div>Use Base64 for small images, icons, or embedding in code. For large photos, downloading the file is more efficient.</div>
-                    </div>
-                `;
-
-                document.getElementById('copyB64Btn').addEventListener('click', () => copyText(b64));
-                document.getElementById('copyAsImgBtn').addEventListener('click', () => {
-                    copyText(`<img src="${b64}" alt="${e.file.name}" />`);
-                });
-
-            } else if (currentModalTab === 'blob') {
-                tabContent.innerHTML = `
-                    <div class="warn-banner mb-4">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        <div>
-                            <strong>This link is temporary.</strong> It only works in <em>this exact browser tab</em>.
-                            It will break if you refresh, close the tab, or after the browser garbage-collects it.
-                            Use <strong>Download</strong> or <strong>Base64</strong> for permanent access.
-                        </div>
-                    </div>
-                    <div class="modal-link-box mb-4">${e.blobUrl}</div>
-                    <button class="btn-sm w-full justify-center" id="copyBlobBtn">
-                        <i class="fa-regular fa-copy"></i> Copy Blob URL
-                    </button>
-                    <div class="info-banner mt-3">
-                        <i class="fa-solid fa-clock"></i>
-                        <div>Only useful for quick testing or passing to another tab while it's still open.</div>
-                    </div>
-                `;
-
-                document.getElementById('copyBlobBtn').addEventListener('click', () => copyText(e.blobUrl));
+            } else if (entry.status === 'error') {
+                if (bar) { bar.style.width = '100%'; bar.style.background = 'var(--danger)'; }
+                if (badge) { badge.className = 'status-badge error'; badge.innerHTML = '<i class="fa-solid fa-xmark text-xs"></i> Failed'; }
+                if (retryBtn) retryBtn.classList.remove('hidden');
+                if (linkArea) linkArea.innerHTML = `<p class="text-xs" style="color:var(--danger);">${entry.errorMsg}</p>`;
             }
         }
 
-        // Tab switching
-        modalTabs.addEventListener('click', (e) => {
-            const btn = e.target.closest('.tab-btn');
-            if (!btn) return;
-            currentModalTab = btn.dataset.tab;
-            updateTabUI();
-            renderTabContent();
-        });
-
-        // Copy helper
-        async function copyText(text) {
+        // ── Download from URL ──
+        async function downloadFromUrl(url, filename) {
             try {
-                await navigator.clipboard.writeText(text);
-                showToast('Copied to clipboard!', 'success');
+                showToast('Preparing download...', 'info');
+                const resp = await fetch(url);
+                const blob = await resp.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl; a.download = filename;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+                showToast('Download started!', 'success');
             } catch {
-                const ta = document.createElement('textarea');
-                ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
-                document.body.appendChild(ta); ta.select();
-                try { document.execCommand('copy'); showToast('Copied!', 'success'); }
-                catch { showToast('Copy failed.', 'error'); }
-                document.body.removeChild(ta);
+                showToast('Download failed. Try the Open button instead.', 'error');
             }
         }
 
-        closeModalBtn.addEventListener('click', () => linkModal.classList.remove('active'));
-        linkModal.addEventListener('click', (e) => { if (e.target === linkModal) linkModal.classList.remove('active'); });
+        // ── Retry ──
+        async function retryUpload(entry) {
+            entry.status = 'uploading'; entry.errorMsg = ''; entry.serverData = null;
+            const bar = document.getElementById(`progress-${entry.id}`);
+            const badge = document.getElementById(`status-${entry.id}`);
+            const linkArea = document.getElementById(`link-area-${entry.id}`);
+            const retryBtn = document.querySelector(`.card-retry[data-id="${entry.id}"]`);
 
-        // ── Lightbox ──
-        lightbox.addEventListener('click', () => lightbox.classList.remove('active'));
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                lightbox.classList.remove('active');
-                linkModal.classList.remove('active');
+            if (bar) { bar.classList.remove('done'); bar.style.background = ''; bar.style.width = '0%'; }
+            if (badge) { badge.className = 'status-badge uploading'; badge.innerHTML = '<span class="dot"></span> Uploading'; }
+            if (linkArea) linkArea.innerHTML = '';
+            if (retryBtn) retryBtn.classList.add('hidden');
+
+            simulateProgress(entry.id);
+
+            try {
+                const result = await uploadToImgbb(entry.file);
+                entry.status = 'live'; entry.serverData = result;
+                updateCardStatus(entry);
+                const card = document.querySelector(`.image-card[data-id="${entry.id}"]`);
+                if (card) { const r = card.getBoundingClientRect(); confettiBurst(r.left + r.width / 2, r.top + 60); }
+                showToast('Upload successful!', 'success');
+            } catch (err) {
+                entry.status = 'error'; entry.errorMsg = err.message || 'Upload failed';
+                updateCardStatus(entry); showToast(`Failed: ${entry.errorMsg}`, 'error');
             }
-        });
+            updateSummary();
+        }
 
         // ── Update summary ──
         function updateSummary() {
             const count = imageStore.length;
-            const size = imageStore.reduce((s, e) => s + e.file.size, 0);
+            const live = imageStore.filter(e => e.status === 'live').length;
             if (count === 0) {
                 summaryBar.classList.add('hidden');
+                copyAllLinksBtn.disabled = true;
                 downloadAllBtn.disabled = true;
-                saveAllFilesBtn.disabled = true;
+                downloadZipBtn.disabled = true;
             } else {
                 summaryBar.classList.remove('hidden');
-                downloadAllBtn.disabled = false;
-                saveAllFilesBtn.disabled = false;
+                copyAllLinksBtn.disabled = live === 0;
+                downloadAllBtn.disabled = live === 0;
+                downloadZipBtn.disabled = live === 0;
             }
             totalCountEl.textContent = count;
-            totalSizeEl.textContent = fmtSize(size);
+            liveCountEl.textContent = live;
         }
 
-        // ── Download ZIP ──
-        downloadAllBtn.addEventListener('click', async () => {
-            if (imageStore.length === 0) return;
-            downloadAllBtn.disabled = true;
-            downloadAllBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Zipping...';
+        // ── Copy all links ──
+        copyAllLinksBtn.addEventListener('click', async () => {
+            const links = imageStore.filter(e => e.status === 'live' && e.serverData).map(e => e.serverData.url);
+            if (links.length === 0) return;
+            const ok = await copyText(links.join('\n'));
+            if (ok) showToast(`${links.length} link(s) copied!`, 'success');
+            else showToast('Copy failed.', 'error');
+        });
+
+        // ── Download all individually ──
+        downloadAllBtn.addEventListener('click', () => {
+            const live = imageStore.filter(e => e.status === 'live' && e.serverData);
+            if (live.length === 0) return;
+            let delay = 0;
+            for (const entry of live) {
+                setTimeout(() => downloadFromUrl(entry.serverData.url, entry.file.name), delay);
+                delay += 500;
+            }
+            showToast(`Downloading ${live.length} image(s)...`, 'info');
+        });
+
+        // ── Download all as ZIP ──
+        downloadZipBtn.addEventListener('click', async () => {
+            const live = imageStore.filter(e => e.status === 'live' && e.serverData);
+            if (live.length === 0) return;
+
+            // Show ZIP overlay
+            downloadZipBtn.disabled = true;
+            zipOverlay.classList.add('active');
+            zipStatus.textContent = `Fetching ${live.length} image(s)...`;
+            zipProgressFill.style.width = '0%';
+
             try {
                 const zip = new JSZip();
                 const nameCount = {};
-                for (const entry of imageStore) {
+                let fetched = 0;
+
+                for (const entry of live) {
+                    zipStatus.textContent = `Fetching: ${truncate(entry.file.name, 25)} (${fetched + 1}/${live.length})`;
+                    zipProgressFill.style.width = Math.round(((fetched) / live.length) * 80) + '%';
+
+                    // Handle duplicate filenames
                     let name = entry.file.name;
                     if (nameCount[name]) {
                         const dot = name.lastIndexOf('.');
@@ -932,43 +841,65 @@
                         name = `${base} (${nameCount[name]})${ex}`;
                     }
                     nameCount[name] = (nameCount[name] || 0) + 1;
-                    const resp = await fetch(entry.blobUrl);
+
+                    const resp = await fetch(entry.serverData.url);
                     const blob = await resp.blob();
                     zip.file(name, blob);
+                    fetched++;
                 }
-                const content = await zip.generateAsync({ type: 'blob' });
+
+                zipStatus.textContent = 'Compressing ZIP...';
+                zipProgressFill.style.width = '85%';
+
+                const content = await zip.generateAsync({
+                    type: 'blob',
+                    compression: 'DEFLATE',
+                    compressionOptions: { level: 6 }
+                }, (metadata) => {
+                    // JSZip progress callback
+                    const pct = 85 + Math.round(metadata.percent * 0.15);
+                    zipProgressFill.style.width = pct + '%';
+                });
+
+                zipProgressFill.style.width = '100%';
+                zipStatus.textContent = 'Done!';
+
+                // Trigger download
                 const url = URL.createObjectURL(content);
                 const a = document.createElement('a');
-                a.href = url; a.download = 'snaplink-images.zip';
-                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                a.href = url;
+                a.download = 'snaplink-images.zip';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-                showToast(`ZIP created with ${imageStore.length} image(s)!`, 'success');
-            } catch {
-                showToast('Failed to create ZIP.', 'error');
-            }
-            downloadAllBtn.disabled = false;
-            downloadAllBtn.innerHTML = '<i class="fa-solid fa-file-zipper"></i> Download ZIP';
-        });
 
-        // ── Save All Files individually ──
-        saveAllFilesBtn.addEventListener('click', () => {
-            if (imageStore.length === 0) return;
-            let delay = 0;
-            for (const entry of imageStore) {
-                setTimeout(() => downloadEntry(entry), delay);
-                delay += 300; // Stagger to avoid browser blocking
+                // Confetti at center
+                confettiBurst(window.innerWidth / 2, window.innerHeight / 2);
+
+                setTimeout(() => {
+                    zipOverlay.classList.remove('active');
+                    showToast(`ZIP created with ${live.length} image(s)!`, 'success');
+                }, 600);
+
+            } catch (err) {
+                zipOverlay.classList.remove('active');
+                showToast('Failed to create ZIP: ' + (err.message || 'Unknown error'), 'error');
             }
-            showToast(`Saving ${imageStore.length} file(s)...`, 'info');
+
+            downloadZipBtn.disabled = false;
         });
 
         // ── Clear All ──
         clearAllBtn.addEventListener('click', () => {
             imageStore.forEach(e => URL.revokeObjectURL(e.blobUrl));
-            imageStore.length = 0;
-            gallery.innerHTML = '';
-            updateSummary();
+            imageStore.length = 0; gallery.innerHTML = ''; updateSummary();
             showToast('All images cleared.', 'info');
         });
+
+        // ── Lightbox ──
+        lightbox.addEventListener('click', () => lightbox.classList.remove('active'));
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { lightbox.classList.remove('active'); } });
 
         // ── Init ──
         updateSummary();
