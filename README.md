@@ -3,6 +3,5 @@
 - Upload any image, preview each one, grab download links individually, or bundle them all into a ZIP.
 
 ## Start using SnapLink-Images ➢ [SnapLink-Images](https://chris1111.github.io/SnapLink-Images/)
-
 - HTML Page Create with help of [Z-AI](https://z.ai)
 
