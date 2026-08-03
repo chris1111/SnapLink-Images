@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapLink-Images — Multi Image Upload</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        :root {
+            --bg: #0f0f0f;
+            --bg-elevated: #1a1a1a;
+            --card: #222222;
+            --border: #333333;
+            --fg: #f0ebe3;
+            --muted: #8a8580;
+            --accent: #d4943a;
+            --accent-glow: rgba(212, 148, 58, 0.25);
+            --accent-hover: #e8a838;
+            --danger: #c44d4d;
+            --success: #4daa6d;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif; }
+
+        /* Background layers */
+        .bg-atmosphere {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+        }
+        .bg-atmosphere::before {
+            content: ''; position: absolute; width: 600px; height: 600px;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            top: -200px; right: -150px;
+            animation: floatBlob1 12s ease-in-out infinite;
+        }
+        .bg-atmosphere::after {
+            content: ''; position: absolute; width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(212, 148, 58, 0.1) 0%, transparent 70%);
+            bottom: -150px; left: -100px;
+            animation: floatBlob2 15s ease-in-out infinite;
+        }
+        @keyframes floatBlob1 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(-60px, 40px) scale(1.1); }
+            66% { transform: translate(30px, -20px) scale(0.95); }
+        }
+        @keyframes floatBlob2 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(50px, -40px) scale(1.15); }
+        }
+
+        .noise-overlay {
+            position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+        .grid-pattern {
+            position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0.04;
+            background-image: linear-gradient(var(--fg) 1px, transparent 1px), linear-gradient(90deg, var(--fg) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+
+        /* Upload zone */
+        .upload-zone {
+            border: 2px dashed var(--border); border-radius: 16px;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative; overflow: hidden; cursor: pointer;
+        }
+        .upload-zone::before {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(circle at center, var(--accent-glow) 0%, transparent 70%);
+            opacity: 0; transition: opacity 0.4s ease;
+        }
+        .upload-zone:hover, .upload-zone.drag-over {
+            border-color: var(--accent); background: rgba(212, 148, 58, 0.04);
+        }
+        .upload-zone:hover::before, .upload-zone.drag-over::before { opacity: 1; }
+        .upload-zone.drag-over {
+            transform: scale(1.005); box-shadow: 0 0 50px var(--accent-glow);
+        }
+
+        .upload-icon-ring {
+            width: 80px; height: 80px; border-radius: 50%;
+            border: 2px solid var(--border); display: flex;
+            align-items: center; justify-content: center;
+            transition: all 0.4s ease; position: relative;
+        }
+        .upload-zone:hover .upload-icon-ring {
+            border-color: var(--accent); box-shadow: 0 0 20px var(--accent-glow);
+        }
+        .upload-icon-ring::after {
+            content: ''; position: absolute; inset: -6px; border-radius: 50%;
+            border: 1px solid transparent; animation: ringPulse 3s ease-in-out infinite;
+        }
+        @keyframes ringPulse {
+            0%, 100% { border-color: transparent; transform: scale(1); }
+            50% { border-color: rgba(212, 148, 58, 0.2); transform: scale(1.08); }
+        }
+
+        .file-input-hidden { position: absolute; inset: 0; opacity: 0; cursor: pointer; z-index: 5; }
+
+        /* Image card */
+        .image-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 14px; overflow: hidden;
+            transition: all 0.35s ease;
+            animation: cardIn 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+            opacity: 0;
+        }
+        .image-card:hover {
+            border-color: rgba(212, 148, 58, 0.3);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            transform: translateY(-3px);
+        }
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(24px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .card-preview {
+            width: 100%; height: 200px; object-fit: contain;
+            background: repeating-conic-gradient(#1a1a1a 0% 25%, #222 0% 50%) 0 0 / 18px 18px;
+            display: block; cursor: pointer; transition: filter 0.3s ease;
+        }
+        .card-preview:hover { filter: brightness(1.08); }
+
+        .card-info-row {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 0.75rem; color: var(--muted);
+        }
+        .card-info-row .val { color: var(--fg); font-weight: 500; }
+
+        /* Buttons */
+        .btn-primary {
+            background: var(--accent); color: #0f0f0f; font-weight: 600;
+            padding: 10px 18px; border-radius: 9px; border: none; cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif; font-size: 0.85rem;
+            transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 7px;
+        }
+        .btn-primary:hover {
+            background: var(--accent-hover); transform: translateY(-2px);
+            box-shadow: 0 8px 24px var(--accent-glow);
+        }
+        .btn-primary:active { transform: translateY(0); }
+        .btn-primary:disabled {
+            opacity: 0.4; cursor: not-allowed; transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .btn-sm {
+            padding: 7px 12px; border-radius: 7px; border: 1px solid var(--border);
+            background: var(--bg-elevated); color: var(--fg); cursor: pointer;
+            font-family: 'DM Sans', sans-serif; font-size: 0.78rem;
+            transition: all 0.25s ease; display: inline-flex; align-items: center; gap: 5px;
+        }
+        .btn-sm:hover { border-color: var(--muted); background: var(--border); }
+
+        .btn-danger-sm {
+            padding: 7px 12px; border-radius: 7px;
+            border: 1px solid rgba(196,77,77,0.25); background: transparent;
+            color: var(--danger); cursor: pointer; font-size: 0.78rem;
+            transition: all 0.25s ease; display: inline-flex; align-items: center; gap: 5px;
+        }
+        .btn-danger-sm:hover { background: rgba(196,77,77,0.1); border-color: var(--danger); }
+
+        .btn-outline-accent {
+            padding: 10px 18px; border-radius: 9px;
+            border: 1px solid var(--accent); background: transparent;
+            color: var(--accent); cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif; font-size: 0.85rem; font-weight: 500;
+            transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 7px;
+        }
+        .btn-outline-accent:hover {
+            background: rgba(212,148,58,0.1); transform: translateY(-2px);
+        }
+
+        /* Summary bar */
+        .summary-bar {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 14px 20px;
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 12px;
+        }
+        .summary-stat {
+            display: flex; align-items: center; gap: 8px; font-size: 0.85rem;
+        }
+        .summary-stat .num {
+            font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+            font-size: 1.15rem; color: var(--accent);
+        }
+        .summary-stat .lbl { color: var(--muted); }
+
+        /* Link modal */
+        .modal-overlay {
+            position: fixed; inset: 0; z-index: 100;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px; opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-box {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 16px; padding: 28px; max-width: 560px; width: 100%;
+            transform: scale(0.95) translateY(10px);
+            transition: transform 0.3s ease;
+            max-height: 80vh; overflow-y: auto;
+        }
+        .modal-overlay.active .modal-box { transform: scale(1) translateY(0); }
+        .modal-link-box {
+            background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+            padding: 12px 14px; font-size: 0.78rem; color: var(--accent);
+            word-break: break-all; line-height: 1.5; max-height: 160px;
+            overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+            font-family: 'DM Sans', monospace;
+        }
+
+        /* Progress bar */
+        .progress-bar-track {
+            width: 100%; height: 4px; background: var(--border);
+            border-radius: 2px; overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+            border-radius: 2px; width: 0%; transition: width 0.3s ease;
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed; top: 24px; right: 24px; z-index: 200;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .toast {
+            background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+            padding: 14px 20px; display: flex; align-items: center; gap: 10px;
+            font-size: 0.88rem; box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+            animation: toastIn 0.4s cubic-bezier(0.25,0.46,0.45,0.94) forwards;
+            min-width: 260px;
+        }
+        .toast.leaving { animation: toastOut 0.3s ease forwards; }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(40px) scale(0.95); }
+            to { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        @keyframes toastOut {
+            from { opacity: 1; transform: translateX(0) scale(1); }
+            to { opacity: 0; transform: translateX(40px) scale(0.95); }
+        }
+
+        /* Particles */
+        .particle {
+            position: fixed; width: 3px; height: 3px; background: var(--accent);
+            border-radius: 50%; pointer-events: none; z-index: 0; opacity: 0;
+            animation: particleFloat linear infinite;
+        }
+        @keyframes particleFloat {
+            0% { opacity: 0; transform: translateY(0) scale(0); }
+            10% { opacity: 0.5; transform: scale(1); }
+            90% { opacity: 0.05; }
+            100% { opacity: 0; transform: translateY(-100vh) scale(0.5); }
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center; padding: 50px 20px; color: var(--muted);
+        }
+
+        /* Lightbox */
+        .lightbox {
+            position: fixed; inset: 0; z-index: 150;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
+            display: flex; align-items: center; justify-content: center;
+            padding: 30px; opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease; cursor: zoom-out;
+        }
+        .lightbox.active { opacity: 1; pointer-events: auto; }
+        .lightbox img {
+            max-width: 90vw; max-height: 85vh; object-fit: contain;
+            border-radius: 8px; background: repeating-conic-gradient(#1a1a1a 0% 25%, #222 0% 50%) 0 0 / 20px 20px;
+            transform: scale(0.9); transition: transform 0.35s ease;
+        }
+        .lightbox.active img { transform: scale(1); }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .card-preview { height: 150px; }
+            .summary-bar { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-atmosphere"></div>
+    <div class="grid-pattern"></div>
+    <div class="noise-overlay"></div>
+    <div id="particles"></div>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox" role="dialog" aria-label="Image preview">
+        <img id="lightboxImg" alt="Full size preview">
+    </div>
+
+    <!-- Link Modal -->
+    <div class="modal-overlay" id="linkModal" role="dialog" aria-label="Download links">
+        <div class="modal-box">
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="text-lg font-semibold" style="font-family: 'Space Grotesk', sans-serif;" id="modalTitle">Links</h3>
+                <button class="btn-sm" id="closeModal" aria-label="Close modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="flex gap-2 mb-4" id="modalTabs">
+                <button class="btn-sm" style="border-color: var(--accent); color: var(--accent);" data-tab="blob">Blob URL</button>
+                <button class="btn-sm" data-tab="base64">Base64</button>
+            </div>
+            <div class="modal-link-box mb-4" id="modalLinkContent">—</div>
+            <button class="btn-primary w-full justify-center" id="modalCopyBtn">
+                <i class="fa-regular fa-copy"></i> Copy to Clipboard
+            </button>
+        </div>
+    </div>
+
+    <main class="relative z-10 min-h-screen flex flex-col">
+        <!-- Header -->
+        <header class="py-6 px-6 md:px-10">
+            <div class="max-w-6xl mx-auto flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: var(--accent);">
+                        <i class="fa-solid fa-images text-sm" style="color: var(--bg);"></i>
+                    </div>
+                    <span class="font-semibold text-lg" style="font-family: 'Space Grotesk', sans-serif;">SnapLink-Images</span>
+                </div>
+                <div class="flex items-center gap-2 text-xs" style="color: var(--muted);">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>100% local — no server uploads</span>
+                </div>
+            </div>
+        </header>
+
+        <section class="flex-1 px-6 md:px-10 pb-16">
+            <div class="max-w-6xl mx-auto">
+                <!-- Title -->
+                <div class="text-center mt-4 mb-8">
+                    <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-3">
+                        Upload Multiple Images
+                    </h1>
+                    <p class="text-base md:text-lg max-w-xl mx-auto" style="color: var(--muted); line-height: 1.6;">
+                        Drop as many images as you want. Preview each one, grab download links individually, or bundle them all into a ZIP.
+                    </p>
+                </div>
+
+                <!-- Upload zone -->
+                <div class="upload-zone p-10 md:p-14 text-center relative" id="uploadZone" role="button" tabindex="0" aria-label="Click or drag to upload images">
+                    <input type="file" accept="image/*" multiple class="file-input-hidden" id="fileInput" aria-label="Choose image files">
+                    <div class="relative z-10 flex flex-col items-center gap-4">
+                        <div class="upload-icon-ring">
+                            <i class="fa-solid fa-cloud-arrow-up text-2xl" style="color: var(--accent);"></i>
+                        </div>
+                        <div>
+                            <p class="text-base font-medium mb-1" style="font-family: 'Space Grotesk', sans-serif;">Drop images here</p>
+                            <p class="text-sm" style="color: var(--muted);">or click to browse — select multiple files at once</p>
+                        </div>
+                        <div class="flex items-center gap-3 mt-2 flex-wrap justify-center">
+                            <span class="text-xs px-3 py-1 rounded-full" style="background: var(--bg-elevated); color: var(--muted); border: 1px solid var(--border);">PNG</span>
+                            <span class="text-xs px-3 py-1 rounded-full" style="background: var(--bg-elevated); color: var(--muted); border: 1px solid var(--border);">JPG</span>
+                            <span class="text-xs px-3 py-1 rounded-full" style="background: var(--bg-elevated); color: var(--muted); border: 1px solid var(--border);">WebP</span>
+                            <span class="text-xs px-3 py-1 rounded-full" style="background: var(--bg-elevated); color: var(--muted); border: 1px solid var(--border);">GIF</span>
+                            <span class="text-xs px-3 py-1 rounded-full" style="background: var(--bg-elevated); color: var(--muted); border: 1px solid var(--border);">SVG</span>
+                            <span class="text-xs px-3 py-1 rounded-full" style="background: var(--bg-elevated); color: var(--muted); border: 1px solid var(--border);">Max 50 MB each</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress -->
+                <div class="progress-bar-track mt-3 hidden" id="progressTrack">
+                    <div class="progress-bar-fill" id="progressFill"></div>
+                </div>
+
+                <!-- Summary bar (hidden initially) -->
+                <div class="summary-bar mt-8 hidden" id="summaryBar">
+                    <div class="flex items-center gap-6 flex-wrap">
+                        <div class="summary-stat">
+                            <span class="num" id="totalCount">0</span>
+                            <span class="lbl">images</span>
+                        </div>
+                        <div class="summary-stat">
+                            <span class="num" id="totalSize">0 B</span>
+                            <span class="lbl">total</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <button class="btn-primary" id="downloadAllBtn" disabled>
+                            <i class="fa-solid fa-file-zipper"></i> Download ZIP
+                        </button>
+                        <button class="btn-outline-accent" id="addMoreBtn">
+                            <i class="fa-solid fa-plus"></i> Add More
+                        </button>
+                        <button class="btn-danger-sm" id="clearAllBtn">
+                            <i class="fa-solid fa-trash-can"></i> Clear All
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Gallery -->
+                <div id="gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-6"></div>
+
+                <!-- Empty state -->
+                <div class="empty-state hidden" id="emptyState">
+                    <i class="fa-regular fa-image text-4xl mb-3" style="color: var(--border);"></i>
+                    <p class="text-sm" style="color: var(--muted);">No images uploaded yet</p>
+                </div>
+            </div>
+        </section>
+
+        <footer class="py-5 px-6 text-center text-xs" style="color: var(--muted); border-top: 1px solid var(--border);">
+            Built by with care. Your images never leave your device. Copyright © 2026 chris1111 , All Rights Reserved..
+        </footer>
+    </main>
+
+    <script>
+        // ── State ──
+        const imageStore = []; // { id, file, blobUrl, base64, width, height }
+        let idCounter = 0;
+
+        // ── DOM ──
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const progressTrack = document.getElementById('progressTrack');
+        const progressFill = document.getElementById('progressFill');
+        const summaryBar = document.getElementById('summaryBar');
+        const totalCount = document.getElementById('totalCount');
+        const totalSize = document.getElementById('totalSize');
+        const gallery = document.getElementById('gallery');
+        const emptyState = document.getElementById('emptyState');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+        const addMoreBtn = document.getElementById('addMoreBtn');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightboxImg');
+        const linkModal = document.getElementById('linkModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalTabs = document.getElementById('modalTabs');
+        const modalLinkContent = document.getElementById('modalLinkContent');
+        const modalCopyBtn = document.getElementById('modalCopyBtn');
+        const closeModal = document.getElementById('closeModal');
+        const toastContainer = document.getElementById('toastContainer');
+
+        let currentModalTab = 'blob';
+        let currentModalData = { blob: '', base64: '' };
+
+        // ── Particles ──
+        (function() {
+            const c = document.getElementById('particles');
+            for (let i = 0; i < 12; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                p.style.left = Math.random() * 100 + 'vw';
+                p.style.animationDuration = (8 + Math.random() * 14) + 's';
+                p.style.animationDelay = (Math.random() * 10) + 's';
+                const s = 2 + Math.random() * 3;
+                p.style.width = p.style.height = s + 'px';
+                c.appendChild(p);
+            }
+        })();
+
+        // ── Toast ──
+        function showToast(msg, type = 'info') {
+            const icons = {
+                success: '<i class="fa-solid fa-circle-check" style="color:var(--success);font-size:1.1rem;"></i>',
+                error: '<i class="fa-solid fa-circle-xmark" style="color:var(--danger);font-size:1.1rem;"></i>',
+                info: '<i class="fa-solid fa-circle-info" style="color:var(--accent);font-size:1.1rem;"></i>'
+            };
+            const t = document.createElement('div');
+            t.className = 'toast';
+            t.innerHTML = `${icons[type] || icons.info}<span>${msg}</span>`;
+            toastContainer.appendChild(t);
+            setTimeout(() => {
+                t.classList.add('leaving');
+                t.addEventListener('animationend', () => t.remove());
+            }, 2800);
+        }
+
+        // ── Helpers ──
+        function fmtSize(b) {
+            if (b === 0) return '0 B';
+            const k = 1024, s = ['B','KB','MB','GB'];
+            const i = Math.floor(Math.log(b) / Math.log(k));
+            return parseFloat((b / Math.pow(k, i)).toFixed(2)) + ' ' + s[i];
+        }
+
+        function ext(name) {
+            const p = name.split('.');
+            return p.length > 1 ? p.pop().toUpperCase() : '?';
+        }
+
+        function truncate(s, n) {
+            return s.length > n ? s.substring(0, n - 2) + '...' : s;
+        }
+
+        // ── Drag & Drop ──
+        uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+        uploadZone.addEventListener('dragleave', (e) => { e.preventDefault(); uploadZone.classList.remove('drag-over'); });
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault(); uploadZone.classList.remove('drag-over');
+            handleFiles(e.dataTransfer.files);
+        });
+        uploadZone.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
+        });
+        fileInput.addEventListener('change', (e) => { handleFiles(e.target.files); fileInput.value = ''; });
+
+        addMoreBtn.addEventListener('click', () => fileInput.click());
+
+        // ── Handle multiple files ──
+        async function handleFiles(fileList) {
+            const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+            const rejected = Array.from(fileList).length - files.length;
+
+            if (rejected > 0) showToast(`${rejected} non-image file(s) skipped.`, 'error');
+
+            const oversized = files.filter(f => f.size > 50 * 1024 * 1024);
+            if (oversized.length > 0) {
+                showToast(`${oversized.length} file(s) exceeded 50 MB limit.`, 'error');
+                oversized.forEach(f => {
+                    const idx = files.indexOf(f);
+                    if (idx > -1) files.splice(idx, 1);
+                });
+            }
+
+            if (files.length === 0) return;
+
+            progressTrack.classList.remove('hidden');
+            progressFill.style.width = '0%';
+
+            let processed = 0;
+            const total = files.length;
+
+            for (const file of files) {
+                try {
+                    const entry = await processFile(file);
+                    imageStore.push(entry);
+                    renderCard(entry, processed * 60);
+                } catch (err) {
+                    showToast(`Failed: ${truncate(file.name, 20)}`, 'error');
+                }
+                processed++;
+                progressFill.style.width = Math.round((processed / total) * 100) + '%';
+            }
+
+            setTimeout(() => {
+                progressTrack.classList.add('hidden');
+                updateSummary();
+                showToast(`${processed} image(s) added!`, 'success');
+            }, 350);
+        }
+
+        function processFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const blob = new Blob([e.target.result], { type: file.type });
+                    const blobUrl = URL.createObjectURL(blob);
+
+                    // Get base64
+                    const b64Reader = new FileReader();
+                    let base64 = '';
+                    b64Reader.onload = (ev) => { base64 = ev.target.result; };
+                    b64Reader.readAsDataURL(file);
+
+                    // Get dimensions
+                    const img = new Image();
+                    img.onload = () => {
+                        resolve({
+                            id: ++idCounter,
+                            file,
+                            blobUrl,
+                            base64: '',  // will be set shortly after
+                            width: img.naturalWidth,
+                            height: img.naturalHeight
+                        });
+                        // Set base64 after resolve (it's ready around the same time)
+                        const check = setInterval(() => {
+                            if (base64) {
+                                const entry = imageStore.find(x => x.id === idCounter);
+                                if (entry) entry.base64 = base64;
+                                clearInterval(check);
+                            }
+                        }, 50);
+                    };
+                    img.onerror = () => {
+                        resolve({
+                            id: ++idCounter, file, blobUrl, base64: '', width: '—', height: '—'
+                        });
+                    };
+                    img.src = blobUrl;
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // ── Render a card ──
+        function renderCard(entry, delay = 0) {
+            const card = document.createElement('div');
+            card.className = 'image-card';
+            card.style.animationDelay = delay + 'ms';
+            card.dataset.id = entry.id;
+
+            const name = truncate(entry.file.name, 24);
+
+            card.innerHTML = `
+                <img class="card-preview" src="${entry.blobUrl}" alt="${entry.file.name}" loading="lazy">
+                <div class="p-4">
+                    <p class="text-sm font-medium mb-2" style="font-family:'Space Grotesk',sans-serif;" title="${entry.file.name}">${name}</p>
+                    <div class="flex flex-wrap gap-x-4 gap-y-1 mb-3">
+                        <div class="card-info-row"><i class="fa-solid fa-weight-scale text-xs" style="color:var(--accent);"></i><span class="val">${fmtSize(entry.file.size)}</span></div>
+                        <div class="card-info-row"><i class="fa-solid fa-tag text-xs" style="color:var(--accent);"></i><span class="val">${ext(entry.file.name)}</span></div>
+                        <div class="card-info-row"><i class="fa-solid fa-expand text-xs" style="color:var(--accent);"></i><span class="val">${entry.width}×${entry.height}</span></div>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button class="btn-sm card-download" data-id="${entry.id}"><i class="fa-solid fa-download"></i> Download</button>
+                        <button class="btn-sm card-links" data-id="${entry.id}"><i class="fa-solid fa-link"></i> Links</button>
+                        <button class="btn-danger-sm card-remove" data-id="${entry.id}"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+            `;
+
+            // Lightbox on preview click
+            card.querySelector('.card-preview').addEventListener('click', () => {
+                lightboxImg.src = entry.blobUrl;
+                lightbox.classList.add('active');
+            });
+
+            // Download
+            card.querySelector('.card-download').addEventListener('click', () => {
+                const a = document.createElement('a');
+                a.href = entry.blobUrl;
+                a.download = entry.file.name;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                showToast('Download started!', 'success');
+            });
+
+            // Links modal
+            card.querySelector('.card-links').addEventListener('click', () => {
+                modalTitle.textContent = truncate(entry.file.name, 30);
+                currentModalData.blob = entry.blobUrl;
+                currentModalData.base64 = entry.base64 || 'Loading Base64...';
+                currentModalTab = 'blob';
+                updateModalTabUI();
+                modalLinkContent.textContent = currentModalData.blob;
+                linkModal.classList.add('active');
+            });
+
+            // Remove
+            card.querySelector('.card-remove').addEventListener('click', () => {
+                card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    URL.revokeObjectURL(entry.blobUrl);
+                    const idx = imageStore.findIndex(x => x.id === entry.id);
+                    if (idx > -1) imageStore.splice(idx, 1);
+                    card.remove();
+                    updateSummary();
+                    showToast('Image removed.', 'info');
+                }, 300);
+            });
+
+            gallery.appendChild(card);
+        }
+
+        // ── Update summary bar ──
+        function updateSummary() {
+            const count = imageStore.length;
+            const size = imageStore.reduce((s, e) => s + e.file.size, 0);
+
+            if (count === 0) {
+                summaryBar.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                downloadAllBtn.disabled = true;
+            } else {
+                summaryBar.classList.remove('hidden');
+                emptyState.classList.add('hidden');
+                downloadAllBtn.disabled = false;
+            }
+
+            totalCount.textContent = count;
+            totalSize.textContent = fmtSize(size);
+        }
+
+        // ── Download All as ZIP ──
+        downloadAllBtn.addEventListener('click', async () => {
+            if (imageStore.length === 0) return;
+            downloadAllBtn.disabled = true;
+            downloadAllBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Zipping...';
+
+            try {
+                const zip = new JSZip();
+                const nameCount = {};
+
+                for (const entry of imageStore) {
+                    // Avoid duplicate names in the zip
+                    let name = entry.file.name;
+                    if (nameCount[name]) {
+                        const dot = name.lastIndexOf('.');
+                        const base = dot > -1 ? name.substring(0, dot) : name;
+                        const ext = dot > -1 ? name.substring(dot) : '';
+                        name = `${base} (${nameCount[name]})${ext}`;
+                    }
+                    nameCount[name] = (nameCount[name] || 0) + 1;
+
+                    const response = await fetch(entry.blobUrl);
+                    const blob = await response.blob();
+                    zip.file(name, blob);
+                }
+
+                const content = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'snaplink-images.zip';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast(`ZIP created with ${imageStore.length} image(s)!`, 'success');
+            } catch (err) {
+                showToast('Failed to create ZIP.', 'error');
+            }
+
+            downloadAllBtn.disabled = false;
+            downloadAllBtn.innerHTML = '<i class="fa-solid fa-file-zipper"></i> Download ZIP';
+        });
+
+        // ── Clear All ──
+        clearAllBtn.addEventListener('click', () => {
+            imageStore.forEach(e => URL.revokeObjectURL(e.blobUrl));
+            imageStore.length = 0;
+            gallery.innerHTML = '';
+            updateSummary();
+            showToast('All images cleared.', 'info');
+        });
+
+        // ── Lightbox ──
+        lightbox.addEventListener('click', () => lightbox.classList.remove('active'));
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                lightbox.classList.remove('active');
+                linkModal.classList.remove('active');
+            }
+        });
+
+        // ── Modal tabs ──
+        function updateModalTabUI() {
+            modalTabs.querySelectorAll('button').forEach(btn => {
+                if (btn.dataset.tab === currentModalTab) {
+                    btn.style.borderColor = 'var(--accent)';
+                    btn.style.color = 'var(--accent)';
+                } else {
+                    btn.style.borderColor = 'var(--border)';
+                    btn.style.color = 'var(--fg)';
+                }
+            });
+        }
+
+        modalTabs.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-tab]');
+            if (!btn) return;
+            currentModalTab = btn.dataset.tab;
+            updateModalTabUI();
+            modalLinkContent.textContent = currentModalData[currentModalTab] || 'Not available yet.';
+        });
+
+        // ── Modal copy ──
+        modalCopyBtn.addEventListener('click', async () => {
+            const text = currentModalData[currentModalTab];
+            if (!text || text.startsWith('Loading')) {
+                showToast('Data not ready yet. Try again.', 'info');
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(text);
+                showToast('Copied to clipboard!', 'success');
+            } catch {
+                fallbackCopy(text);
+            }
+        });
+
+        closeModal.addEventListener('click', () => linkModal.classList.remove('active'));
+        linkModal.addEventListener('click', (e) => {
+            if (e.target === linkModal) linkModal.classList.remove('active');
+        });
+
+        function fallbackCopy(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+            document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); showToast('Copied!', 'success'); }
+            catch { showToast('Copy failed. Select manually.', 'error'); }
+            document.body.removeChild(ta);
+        }
+
+        // ── Init ──
+        updateSummary();
+    </script>
+</body>
+</html>
