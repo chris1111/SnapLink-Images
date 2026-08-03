@@ -45,7 +45,7 @@
 	•	summary/action bar
 	•	image gallery container
   
-### - 3. <script>
+- 3. <script>
 #### All app logic lives here.
 #### Main JavaScript responsibilities, State
 #### The script keeps app state in plain variables:
