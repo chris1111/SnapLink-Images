@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SnapLink-Images — Multi Image Upload</title>
+    <title>SnapLink — Multi Image Upload</title>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -21,6 +21,9 @@
             --accent-hover: #e8a838;
             --danger: #c44d4d;
             --success: #4daa6d;
+            --warn: #c49a3a;
+            --warn-bg: rgba(196, 154, 58, 0.1);
+            --warn-border: rgba(196, 154, 58, 0.3);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -35,7 +38,6 @@
 
         h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif; }
 
-        /* Background layers */
         .bg-atmosphere {
             position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
         }
@@ -158,6 +160,10 @@
             box-shadow: none !important;
         }
 
+        .btn-primary-lg {
+            padding: 13px 24px; font-size: 0.95rem; border-radius: 11px;
+        }
+
         .btn-sm {
             padding: 7px 12px; border-radius: 7px; border: 1px solid var(--border);
             background: var(--bg-elevated); color: var(--fg); cursor: pointer;
@@ -201,7 +207,7 @@
         }
         .summary-stat .lbl { color: var(--muted); }
 
-        /* Link modal */
+        /* Modal */
         .modal-overlay {
             position: fixed; inset: 0; z-index: 100;
             background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
@@ -212,12 +218,34 @@
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
         .modal-box {
             background: var(--card); border: 1px solid var(--border);
-            border-radius: 16px; padding: 28px; max-width: 560px; width: 100%;
+            border-radius: 16px; padding: 28px; max-width: 600px; width: 100%;
             transform: scale(0.95) translateY(10px);
             transition: transform 0.3s ease;
-            max-height: 80vh; overflow-y: auto;
+            max-height: 85vh; overflow-y: auto;
         }
         .modal-overlay.active .modal-box { transform: scale(1) translateY(0); }
+
+        /* Tab buttons */
+        .tab-btn {
+            padding: 9px 16px; border-radius: 8px; border: 1px solid var(--border);
+            background: transparent; color: var(--muted); cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif; font-size: 0.82rem; font-weight: 500;
+            transition: all 0.25s ease; display: inline-flex; align-items: center; gap: 6px;
+            white-space: nowrap;
+        }
+        .tab-btn:hover { border-color: var(--muted); color: var(--fg); }
+        .tab-btn.active-tab {
+            border-color: var(--accent); color: var(--accent);
+            background: rgba(212,148,58,0.08);
+        }
+        .tab-btn .tab-badge {
+            font-size: 0.65rem; padding: 2px 6px; border-radius: 4px;
+            font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;
+        }
+        .tab-badge.perm { background: rgba(77,170,109,0.15); color: var(--success); }
+        .tab-badge.temp { background: var(--warn-bg); color: var(--warn); }
+        .tab-badge.save { background: rgba(212,148,58,0.12); color: var(--accent); }
+
         .modal-link-box {
             background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
             padding: 12px 14px; font-size: 0.78rem; color: var(--accent);
@@ -225,6 +253,45 @@
             overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent;
             font-family: 'DM Sans', monospace;
         }
+
+        /* Warning banner */
+        .warn-banner {
+            background: var(--warn-bg); border: 1px solid var(--warn-border);
+            border-radius: 8px; padding: 10px 14px;
+            display: flex; align-items: flex-start; gap: 10px;
+            font-size: 0.8rem; color: var(--warn); line-height: 1.5;
+        }
+        .warn-banner i { margin-top: 2px; flex-shrink: 0; }
+
+        /* Success banner */
+        .success-banner {
+            background: rgba(77,170,109,0.08); border: 1px solid rgba(77,170,109,0.25);
+            border-radius: 8px; padding: 10px 14px;
+            display: flex; align-items: flex-start; gap: 10px;
+            font-size: 0.8rem; color: var(--success); line-height: 1.5;
+        }
+        .success-banner i { margin-top: 2px; flex-shrink: 0; }
+
+        /* Info banner */
+        .info-banner {
+            background: rgba(212,148,58,0.06); border: 1px solid rgba(212,148,58,0.2);
+            border-radius: 8px; padding: 10px 14px;
+            display: flex; align-items: flex-start; gap: 10px;
+            font-size: 0.8rem; color: var(--muted); line-height: 1.5;
+        }
+        .info-banner i { margin-top: 2px; flex-shrink: 0; color: var(--accent); }
+
+        /* Size comparison */
+        .size-compare {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 14px; border-radius: 8px;
+            background: var(--bg); border: 1px solid var(--border);
+            font-size: 0.78rem;
+        }
+        .size-compare .size-item { display: flex; flex-direction: column; gap: 2px; }
+        .size-compare .size-label { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; }
+        .size-compare .size-val { font-family: 'Space Grotesk', sans-serif; font-weight: 600; color: var(--fg); }
+        .size-compare .size-arrow { color: var(--border); font-size: 1rem; }
 
         /* Progress bar */
         .progress-bar-track {
@@ -271,11 +338,6 @@
             100% { opacity: 0; transform: translateY(-100vh) scale(0.5); }
         }
 
-        /* Empty state */
-        .empty-state {
-            text-align: center; padding: 50px 20px; color: var(--muted);
-        }
-
         /* Lightbox */
         .lightbox {
             position: fixed; inset: 0; z-index: 150;
@@ -287,10 +349,23 @@
         .lightbox.active { opacity: 1; pointer-events: auto; }
         .lightbox img {
             max-width: 90vw; max-height: 85vh; object-fit: contain;
-            border-radius: 8px; background: repeating-conic-gradient(#1a1a1a 0% 25%, #222 0% 50%) 0 0 / 20px 20px;
+            border-radius: 8px;
+            background: repeating-conic-gradient(#1a1a1a 0% 25%, #222 0% 50%) 0 0 / 20px 20px;
             transform: scale(0.9); transition: transform 0.35s ease;
         }
         .lightbox.active img { transform: scale(1); }
+
+        /* Loading spinner for base64 */
+        .b64-loading {
+            display: inline-flex; align-items: center; gap: 8px;
+            color: var(--muted); font-size: 0.82rem; padding: 8px 0;
+        }
+        .b64-loading .spinner {
+            width: 14px; height: 14px; border: 2px solid var(--border);
+            border-top-color: var(--accent); border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -306,6 +381,8 @@
         @media (max-width: 640px) {
             .card-preview { height: 150px; }
             .summary-bar { flex-direction: column; align-items: flex-start; }
+            .modal-box { padding: 20px; }
+            .tab-btn { font-size: 0.75rem; padding: 7px 10px; }
         }
     </style>
 </head>
@@ -322,25 +399,37 @@
     </div>
 
     <!-- Link Modal -->
-    <div class="modal-overlay" id="linkModal" role="dialog" aria-label="Download links">
+    <div class="modal-overlay" id="linkModal" role="dialog" aria-label="Image links">
         <div class="modal-box">
             <div class="flex items-center justify-between mb-5">
-                <h3 class="text-lg font-semibold" style="font-family: 'Space Grotesk', sans-serif;" id="modalTitle">Links</h3>
-                <button class="btn-sm" id="closeModal" aria-label="Close modal"><i class="fa-solid fa-xmark"></i></button>
+                <h3 class="text-lg font-semibold" id="modalTitle">Links</h3>
+                <button class="btn-sm" id="closeModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="flex gap-2 mb-4" id="modalTabs">
-                <button class="btn-sm" style="border-color: var(--accent); color: var(--accent);" data-tab="blob">Blob URL</button>
-                <button class="btn-sm" data-tab="base64">Base64</button>
+
+            <!-- Tabs -->
+            <div class="flex gap-2 mb-5 flex-wrap" id="modalTabs">
+                <button class="tab-btn active-tab" data-tab="download">
+                    <i class="fa-solid fa-download text-xs"></i> Download
+                    <span class="tab-badge save">Best</span>
+                </button>
+                <button class="tab-btn" data-tab="base64">
+                    <i class="fa-solid fa-link text-xs"></i> Permanent Link
+                    <span class="tab-badge perm">Works forever</span>
+                </button>
+                <button class="tab-btn" data-tab="blob">
+                    <i class="fa-solid fa-bolt text-xs"></i> Quick Ref
+                    <span class="tab-badge temp">Temp</span>
+                </button>
             </div>
-            <div class="modal-link-box mb-4" id="modalLinkContent">—</div>
-            <button class="btn-primary w-full justify-center" id="modalCopyBtn">
-                <i class="fa-regular fa-copy"></i> Copy to Clipboard
-            </button>
+
+            <!-- Tab content -->
+            <div id="tabContent">
+                <!-- Filled by JS -->
+            </div>
         </div>
     </div>
 
     <main class="relative z-10 min-h-screen flex flex-col">
-        <!-- Header -->
         <header class="py-6 px-6 md:px-10">
             <div class="max-w-6xl mx-auto flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -351,20 +440,19 @@
                 </div>
                 <div class="flex items-center gap-2 text-xs" style="color: var(--muted);">
                     <i class="fa-solid fa-shield-halved"></i>
-                    <span>100% local — no server uploads</span>
+                    <span>100% local — your files stay here</span>
                 </div>
             </div>
         </header>
 
         <section class="flex-1 px-6 md:px-10 pb-16">
             <div class="max-w-6xl mx-auto">
-                <!-- Title -->
                 <div class="text-center mt-4 mb-8">
                     <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-3">
                         Upload Images
                     </h1>
                     <p class="text-base md:text-lg max-w-xl mx-auto" style="color: var(--muted); line-height: 1.6;">
-                        Drop as many images as you want. Preview each one, grab download links individually, or bundle them all into a ZIP.
+                        Drop as many images as you want. Download directly, get permanent Base64 links, or bundle everything into a ZIP.
                     </p>
                 </div>
 
@@ -390,12 +478,11 @@
                     </div>
                 </div>
 
-                <!-- Progress -->
                 <div class="progress-bar-track mt-3 hidden" id="progressTrack">
                     <div class="progress-bar-fill" id="progressFill"></div>
                 </div>
 
-                <!-- Summary bar (hidden initially) -->
+                <!-- Summary bar -->
                 <div class="summary-bar mt-8 hidden" id="summaryBar">
                     <div class="flex items-center gap-6 flex-wrap">
                         <div class="summary-stat">
@@ -411,6 +498,9 @@
                         <button class="btn-primary" id="downloadAllBtn" disabled>
                             <i class="fa-solid fa-file-zipper"></i> Download ZIP
                         </button>
+                        <button class="btn-primary" id="saveAllFilesBtn" disabled style="background: var(--success);">
+                            <i class="fa-solid fa-download"></i> Save All Files
+                        </button>
                         <button class="btn-outline-accent" id="addMoreBtn">
                             <i class="fa-solid fa-plus"></i> Add More
                         </button>
@@ -422,23 +512,17 @@
 
                 <!-- Gallery -->
                 <div id="gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-6"></div>
-
-                <!-- Empty state -->
-                <div class="empty-state hidden" id="emptyState">
-                    <i class="fa-regular fa-image text-4xl mb-3" style="color: var(--border);"></i>
-                    <p class="text-sm" style="color: var(--muted);">No images uploaded yet</p>
-                </div>
             </div>
         </section>
 
         <footer class="py-5 px-6 text-center text-xs" style="color: var(--muted); border-top: 1px solid var(--border);">
-            Built by with care. Your images never leave your device. Copyright © 2026 chris1111 , All Rights Reserved..
+            Built by with care. Your images never leave your device. Copyright © 2026 chris1111 , All Rights Reserved.
         </footer>
     </main>
 
     <script>
         // ── State ──
-        const imageStore = []; // { id, file, blobUrl, base64, width, height }
+        const imageStore = [];
         let idCounter = 0;
 
         // ── DOM ──
@@ -447,11 +531,11 @@
         const progressTrack = document.getElementById('progressTrack');
         const progressFill = document.getElementById('progressFill');
         const summaryBar = document.getElementById('summaryBar');
-        const totalCount = document.getElementById('totalCount');
-        const totalSize = document.getElementById('totalSize');
+        const totalCountEl = document.getElementById('totalCount');
+        const totalSizeEl = document.getElementById('totalSize');
         const gallery = document.getElementById('gallery');
-        const emptyState = document.getElementById('emptyState');
         const downloadAllBtn = document.getElementById('downloadAllBtn');
+        const saveAllFilesBtn = document.getElementById('saveAllFilesBtn');
         const addMoreBtn = document.getElementById('addMoreBtn');
         const clearAllBtn = document.getElementById('clearAllBtn');
         const lightbox = document.getElementById('lightbox');
@@ -459,13 +543,12 @@
         const linkModal = document.getElementById('linkModal');
         const modalTitle = document.getElementById('modalTitle');
         const modalTabs = document.getElementById('modalTabs');
-        const modalLinkContent = document.getElementById('modalLinkContent');
-        const modalCopyBtn = document.getElementById('modalCopyBtn');
-        const closeModal = document.getElementById('closeModal');
+        const tabContent = document.getElementById('tabContent');
+        const closeModalBtn = document.getElementById('closeModal');
         const toastContainer = document.getElementById('toastContainer');
 
-        let currentModalTab = 'blob';
-        let currentModalData = { blob: '', base64: '' };
+        let currentModalEntry = null;
+        let currentModalTab = 'download';
 
         // ── Particles ──
         (function() {
@@ -485,9 +568,9 @@
         // ── Toast ──
         function showToast(msg, type = 'info') {
             const icons = {
-                success: '<i class="fa-solid fa-circle-check" style="color:var(--success);font-size:1.1rem;"></i>',
-                error: '<i class="fa-solid fa-circle-xmark" style="color:var(--danger);font-size:1.1rem;"></i>',
-                info: '<i class="fa-solid fa-circle-info" style="color:var(--accent);font-size:1.1rem;"></i>'
+                success: '<i class="fa-solid fa-circle-check" style="color:var(--success);font-size:1.1rem;flex-shrink:0;"></i>',
+                error: '<i class="fa-solid fa-circle-xmark" style="color:var(--danger);font-size:1.1rem;flex-shrink:0;"></i>',
+                info: '<i class="fa-solid fa-circle-info" style="color:var(--accent);font-size:1.1rem;flex-shrink:0;"></i>'
             };
             const t = document.createElement('div');
             t.className = 'toast';
@@ -527,43 +610,35 @@
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); }
         });
         fileInput.addEventListener('change', (e) => { handleFiles(e.target.files); fileInput.value = ''; });
-
         addMoreBtn.addEventListener('click', () => fileInput.click());
 
         // ── Handle multiple files ──
         async function handleFiles(fileList) {
             const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
             const rejected = Array.from(fileList).length - files.length;
-
             if (rejected > 0) showToast(`${rejected} non-image file(s) skipped.`, 'error');
 
             const oversized = files.filter(f => f.size > 50 * 1024 * 1024);
             if (oversized.length > 0) {
-                showToast(`${oversized.length} file(s) exceeded 50 MB limit.`, 'error');
-                oversized.forEach(f => {
-                    const idx = files.indexOf(f);
-                    if (idx > -1) files.splice(idx, 1);
-                });
+                showToast(`${oversized.length} file(s) exceeded 50 MB.`, 'error');
+                oversized.forEach(f => { const i = files.indexOf(f); if (i > -1) files.splice(i, 1); });
             }
-
             if (files.length === 0) return;
 
             progressTrack.classList.remove('hidden');
             progressFill.style.width = '0%';
 
             let processed = 0;
-            const total = files.length;
-
             for (const file of files) {
                 try {
                     const entry = await processFile(file);
                     imageStore.push(entry);
                     renderCard(entry, processed * 60);
-                } catch (err) {
+                } catch {
                     showToast(`Failed: ${truncate(file.name, 20)}`, 'error');
                 }
                 processed++;
-                progressFill.style.width = Math.round((processed / total) * 100) + '%';
+                progressFill.style.width = Math.round((processed / files.length) * 100) + '%';
             }
 
             setTimeout(() => {
@@ -579,37 +654,25 @@
                 reader.onload = (e) => {
                     const blob = new Blob([e.target.result], { type: file.type });
                     const blobUrl = URL.createObjectURL(blob);
-
-                    // Get base64
                     const b64Reader = new FileReader();
                     let base64 = '';
-                    b64Reader.onload = (ev) => { base64 = ev.target.result; };
+                    b64Reader.onload = (ev) => {
+                        base64 = ev.target.result;
+                        const entry = imageStore.find(x => x.blobUrl === blobUrl);
+                        if (entry) entry.base64 = base64;
+                    };
                     b64Reader.readAsDataURL(file);
 
-                    // Get dimensions
                     const img = new Image();
                     img.onload = () => {
                         resolve({
-                            id: ++idCounter,
-                            file,
-                            blobUrl,
-                            base64: '',  // will be set shortly after
-                            width: img.naturalWidth,
-                            height: img.naturalHeight
+                            id: ++idCounter, file, blobUrl, base64: '',
+                            width: img.naturalWidth, height: img.naturalHeight,
+                            base64Size: 0
                         });
-                        // Set base64 after resolve (it's ready around the same time)
-                        const check = setInterval(() => {
-                            if (base64) {
-                                const entry = imageStore.find(x => x.id === idCounter);
-                                if (entry) entry.base64 = base64;
-                                clearInterval(check);
-                            }
-                        }, 50);
                     };
                     img.onerror = () => {
-                        resolve({
-                            id: ++idCounter, file, blobUrl, base64: '', width: '—', height: '—'
-                        });
+                        resolve({ id: ++idCounter, file, blobUrl, base64: '', width: '—', height: '—', base64Size: 0 });
                     };
                     img.src = blobUrl;
                 };
@@ -618,61 +681,39 @@
             });
         }
 
-        // ── Render a card ──
+        // ── Render card ──
         function renderCard(entry, delay = 0) {
             const card = document.createElement('div');
             card.className = 'image-card';
             card.style.animationDelay = delay + 'ms';
             card.dataset.id = entry.id;
 
-            const name = truncate(entry.file.name, 24);
-
             card.innerHTML = `
                 <img class="card-preview" src="${entry.blobUrl}" alt="${entry.file.name}" loading="lazy">
                 <div class="p-4">
-                    <p class="text-sm font-medium mb-2" style="font-family:'Space Grotesk',sans-serif;" title="${entry.file.name}">${name}</p>
+                    <p class="text-sm font-medium mb-2" style="font-family:'Space Grotesk',sans-serif;" title="${entry.file.name}">${truncate(entry.file.name, 26)}</p>
                     <div class="flex flex-wrap gap-x-4 gap-y-1 mb-3">
                         <div class="card-info-row"><i class="fa-solid fa-weight-scale text-xs" style="color:var(--accent);"></i><span class="val">${fmtSize(entry.file.size)}</span></div>
                         <div class="card-info-row"><i class="fa-solid fa-tag text-xs" style="color:var(--accent);"></i><span class="val">${ext(entry.file.name)}</span></div>
                         <div class="card-info-row"><i class="fa-solid fa-expand text-xs" style="color:var(--accent);"></i><span class="val">${entry.width}×${entry.height}</span></div>
                     </div>
                     <div class="flex flex-wrap gap-2">
-                        <button class="btn-sm card-download" data-id="${entry.id}"><i class="fa-solid fa-download"></i> Download</button>
+                        <button class="btn-sm card-download" data-id="${entry.id}" style="border-color:var(--accent);color:var(--accent);"><i class="fa-solid fa-download"></i> Download</button>
                         <button class="btn-sm card-links" data-id="${entry.id}"><i class="fa-solid fa-link"></i> Links</button>
                         <button class="btn-danger-sm card-remove" data-id="${entry.id}"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                 </div>
             `;
 
-            // Lightbox on preview click
             card.querySelector('.card-preview').addEventListener('click', () => {
                 lightboxImg.src = entry.blobUrl;
                 lightbox.classList.add('active');
             });
 
-            // Download
-            card.querySelector('.card-download').addEventListener('click', () => {
-                const a = document.createElement('a');
-                a.href = entry.blobUrl;
-                a.download = entry.file.name;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                showToast('Download started!', 'success');
-            });
+            card.querySelector('.card-download').addEventListener('click', () => downloadEntry(entry));
 
-            // Links modal
-            card.querySelector('.card-links').addEventListener('click', () => {
-                modalTitle.textContent = truncate(entry.file.name, 30);
-                currentModalData.blob = entry.blobUrl;
-                currentModalData.base64 = entry.base64 || 'Loading Base64...';
-                currentModalTab = 'blob';
-                updateModalTabUI();
-                modalLinkContent.textContent = currentModalData.blob;
-                linkModal.classList.add('active');
-            });
+            card.querySelector('.card-links').addEventListener('click', () => openLinkModal(entry));
 
-            // Remove
             card.querySelector('.card-remove').addEventListener('click', () => {
                 card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
                 card.style.opacity = '0';
@@ -690,77 +731,163 @@
             gallery.appendChild(card);
         }
 
-        // ── Update summary bar ──
-        function updateSummary() {
-            const count = imageStore.length;
-            const size = imageStore.reduce((s, e) => s + e.file.size, 0);
-
-            if (count === 0) {
-                summaryBar.classList.add('hidden');
-                emptyState.classList.remove('hidden');
-                downloadAllBtn.disabled = true;
-            } else {
-                summaryBar.classList.remove('hidden');
-                emptyState.classList.add('hidden');
-                downloadAllBtn.disabled = false;
-            }
-
-            totalCount.textContent = count;
-            totalSize.textContent = fmtSize(size);
+        // ── Download helper ──
+        function downloadEntry(entry) {
+            const a = document.createElement('a');
+            a.href = entry.blobUrl;
+            a.download = entry.file.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showToast('Download started!', 'success');
         }
 
-        // ── Download All as ZIP ──
-        downloadAllBtn.addEventListener('click', async () => {
-            if (imageStore.length === 0) return;
-            downloadAllBtn.disabled = true;
-            downloadAllBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Zipping...';
+        // ── Link Modal ──
+        function openLinkModal(entry) {
+            currentModalEntry = entry;
+            currentModalTab = 'download';
+            modalTitle.textContent = truncate(entry.file.name, 30);
+            updateTabUI();
+            renderTabContent();
+            linkModal.classList.add('active');
+        }
 
-            try {
-                const zip = new JSZip();
-                const nameCount = {};
+        function updateTabUI() {
+            modalTabs.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.toggle('active-tab', btn.dataset.tab === currentModalTab);
+            });
+        }
 
-                for (const entry of imageStore) {
-                    // Avoid duplicate names in the zip
-                    let name = entry.file.name;
-                    if (nameCount[name]) {
-                        const dot = name.lastIndexOf('.');
-                        const base = dot > -1 ? name.substring(0, dot) : name;
-                        const ext = dot > -1 ? name.substring(dot) : '';
-                        name = `${base} (${nameCount[name]})${ext}`;
-                    }
-                    nameCount[name] = (nameCount[name] || 0) + 1;
+        function renderTabContent() {
+            const e = currentModalEntry;
+            if (!e) return;
 
-                    const response = await fetch(entry.blobUrl);
-                    const blob = await response.blob();
-                    zip.file(name, blob);
+            if (currentModalTab === 'download') {
+                tabContent.innerHTML = `
+                    <div class="success-banner mb-4">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <div>
+                            <strong>Save the file directly</strong> — this is the most reliable way.
+                            The file is saved to your device as <code style="color:var(--fg);background:var(--bg);padding:1px 5px;border-radius:3px;">${e.file.name}</code> (${fmtSize(e.file.size)}).
+                            It never expires and you can share the actual file with anyone.
+                        </div>
+                    </div>
+                    <button class="btn-primary btn-primary-lg w-full justify-center" onclick="downloadEntry(currentModalEntry); document.getElementById('linkModal').classList.remove('active');">
+                        <i class="fa-solid fa-download"></i> Save File to Device
+                    </button>
+                `;
+            } else if (currentModalTab === 'base64') {
+                const b64 = e.base64;
+                const b64Size = b64 ? b64.length : 0;
+                const ratio = e.file.size > 0 ? Math.round((b64Size / e.file.size) * 100) : 0;
+
+                if (!b64) {
+                    tabContent.innerHTML = `
+                        <div class="b64-loading"><div class="spinner"></div> Generating Base64 data...</div>
+                        <p class="text-xs mt-2" style="color:var(--muted);">Large images may take a moment.</p>
+                    `;
+                    // Poll until ready
+                    const check = setInterval(() => {
+                        if (currentModalEntry && currentModalEntry.base64) {
+                            clearInterval(check);
+                            if (currentModalTab === 'base64') renderTabContent();
+                        } else if (!currentModalEntry) {
+                            clearInterval(check);
+                        }
+                    }, 150);
+                    return;
                 }
 
-                const content = await zip.generateAsync({ type: 'blob' });
-                const url = URL.createObjectURL(content);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'snaplink-images.zip';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                showToast(`ZIP created with ${imageStore.length} image(s)!`, 'success');
-            } catch (err) {
-                showToast('Failed to create ZIP.', 'error');
+                tabContent.innerHTML = `
+                    <div class="success-banner mb-3">
+                        <i class="fa-solid fa-infinity"></i>
+                        <div><strong>This link never expires.</strong> Base64 encodes the entire image as text. You can paste it anywhere — emails, docs, code — and it will always work.</div>
+                    </div>
+                    <div class="size-compare mb-4">
+                        <div class="size-item">
+                            <span class="size-label">Original</span>
+                            <span class="size-val">${fmtSize(e.file.size)}</span>
+                        </div>
+                        <span class="size-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+                        <div class="size-item">
+                            <span class="size-label">Base64</span>
+                            <span class="size-val">${fmtSize(b64Size)}</span>
+                        </div>
+                        <div class="size-item" style="margin-left:auto;">
+                            <span class="size-label">Overhead</span>
+                            <span class="size-val" style="color:var(--warn);">+${ratio - 100}%</span>
+                        </div>
+                    </div>
+                    <div class="modal-link-box mb-4">${b64}</div>
+                    <div class="flex gap-3">
+                        <button class="btn-primary flex-1 justify-center" id="copyB64Btn">
+                            <i class="fa-regular fa-copy"></i> Copy Base64
+                        </button>
+                        <button class="btn-sm" id="copyAsImgBtn" title="Copy as &lt;img&gt; tag">
+                            <i class="fa-solid fa-code"></i> As &lt;img&gt;
+                        </button>
+                    </div>
+                    <div class="info-banner mt-3">
+                        <i class="fa-solid fa-lightbulb"></i>
+                        <div>Use Base64 for small images, icons, or embedding in code. For large photos, downloading the file is more efficient.</div>
+                    </div>
+                `;
+
+                document.getElementById('copyB64Btn').addEventListener('click', () => copyText(b64));
+                document.getElementById('copyAsImgBtn').addEventListener('click', () => {
+                    copyText(`<img src="${b64}" alt="${e.file.name}" />`);
+                });
+
+            } else if (currentModalTab === 'blob') {
+                tabContent.innerHTML = `
+                    <div class="warn-banner mb-4">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <div>
+                            <strong>This link is temporary.</strong> It only works in <em>this exact browser tab</em>.
+                            It will break if you refresh, close the tab, or after the browser garbage-collects it.
+                            Use <strong>Download</strong> or <strong>Base64</strong> for permanent access.
+                        </div>
+                    </div>
+                    <div class="modal-link-box mb-4">${e.blobUrl}</div>
+                    <button class="btn-sm w-full justify-center" id="copyBlobBtn">
+                        <i class="fa-regular fa-copy"></i> Copy Blob URL
+                    </button>
+                    <div class="info-banner mt-3">
+                        <i class="fa-solid fa-clock"></i>
+                        <div>Only useful for quick testing or passing to another tab while it's still open.</div>
+                    </div>
+                `;
+
+                document.getElementById('copyBlobBtn').addEventListener('click', () => copyText(e.blobUrl));
             }
+        }
 
-            downloadAllBtn.disabled = false;
-            downloadAllBtn.innerHTML = '<i class="fa-solid fa-file-zipper"></i> Download ZIP';
+        // Tab switching
+        modalTabs.addEventListener('click', (e) => {
+            const btn = e.target.closest('.tab-btn');
+            if (!btn) return;
+            currentModalTab = btn.dataset.tab;
+            updateTabUI();
+            renderTabContent();
         });
 
-        // ── Clear All ──
-        clearAllBtn.addEventListener('click', () => {
-            imageStore.forEach(e => URL.revokeObjectURL(e.blobUrl));
-            imageStore.length = 0;
-            gallery.innerHTML = '';
-            updateSummary();
-            showToast('All images cleared.', 'info');
-        });
+        // Copy helper
+        async function copyText(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+                showToast('Copied to clipboard!', 'success');
+            } catch {
+                const ta = document.createElement('textarea');
+                ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+                document.body.appendChild(ta); ta.select();
+                try { document.execCommand('copy'); showToast('Copied!', 'success'); }
+                catch { showToast('Copy failed.', 'error'); }
+                document.body.removeChild(ta);
+            }
+        }
+
+        closeModalBtn.addEventListener('click', () => linkModal.classList.remove('active'));
+        linkModal.addEventListener('click', (e) => { if (e.target === linkModal) linkModal.classList.remove('active'); });
 
         // ── Lightbox ──
         lightbox.addEventListener('click', () => lightbox.classList.remove('active'));
@@ -771,55 +898,77 @@
             }
         });
 
-        // ── Modal tabs ──
-        function updateModalTabUI() {
-            modalTabs.querySelectorAll('button').forEach(btn => {
-                if (btn.dataset.tab === currentModalTab) {
-                    btn.style.borderColor = 'var(--accent)';
-                    btn.style.color = 'var(--accent)';
-                } else {
-                    btn.style.borderColor = 'var(--border)';
-                    btn.style.color = 'var(--fg)';
-                }
-            });
+        // ── Update summary ──
+        function updateSummary() {
+            const count = imageStore.length;
+            const size = imageStore.reduce((s, e) => s + e.file.size, 0);
+            if (count === 0) {
+                summaryBar.classList.add('hidden');
+                downloadAllBtn.disabled = true;
+                saveAllFilesBtn.disabled = true;
+            } else {
+                summaryBar.classList.remove('hidden');
+                downloadAllBtn.disabled = false;
+                saveAllFilesBtn.disabled = false;
+            }
+            totalCountEl.textContent = count;
+            totalSizeEl.textContent = fmtSize(size);
         }
 
-        modalTabs.addEventListener('click', (e) => {
-            const btn = e.target.closest('button[data-tab]');
-            if (!btn) return;
-            currentModalTab = btn.dataset.tab;
-            updateModalTabUI();
-            modalLinkContent.textContent = currentModalData[currentModalTab] || 'Not available yet.';
-        });
-
-        // ── Modal copy ──
-        modalCopyBtn.addEventListener('click', async () => {
-            const text = currentModalData[currentModalTab];
-            if (!text || text.startsWith('Loading')) {
-                showToast('Data not ready yet. Try again.', 'info');
-                return;
-            }
+        // ── Download ZIP ──
+        downloadAllBtn.addEventListener('click', async () => {
+            if (imageStore.length === 0) return;
+            downloadAllBtn.disabled = true;
+            downloadAllBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Zipping...';
             try {
-                await navigator.clipboard.writeText(text);
-                showToast('Copied to clipboard!', 'success');
+                const zip = new JSZip();
+                const nameCount = {};
+                for (const entry of imageStore) {
+                    let name = entry.file.name;
+                    if (nameCount[name]) {
+                        const dot = name.lastIndexOf('.');
+                        const base = dot > -1 ? name.substring(0, dot) : name;
+                        const ex = dot > -1 ? name.substring(dot) : '';
+                        name = `${base} (${nameCount[name]})${ex}`;
+                    }
+                    nameCount[name] = (nameCount[name] || 0) + 1;
+                    const resp = await fetch(entry.blobUrl);
+                    const blob = await resp.blob();
+                    zip.file(name, blob);
+                }
+                const content = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'snaplink-images.zip';
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast(`ZIP created with ${imageStore.length} image(s)!`, 'success');
             } catch {
-                fallbackCopy(text);
+                showToast('Failed to create ZIP.', 'error');
             }
+            downloadAllBtn.disabled = false;
+            downloadAllBtn.innerHTML = '<i class="fa-solid fa-file-zipper"></i> Download ZIP';
         });
 
-        closeModal.addEventListener('click', () => linkModal.classList.remove('active'));
-        linkModal.addEventListener('click', (e) => {
-            if (e.target === linkModal) linkModal.classList.remove('active');
+        // ── Save All Files individually ──
+        saveAllFilesBtn.addEventListener('click', () => {
+            if (imageStore.length === 0) return;
+            let delay = 0;
+            for (const entry of imageStore) {
+                setTimeout(() => downloadEntry(entry), delay);
+                delay += 300; // Stagger to avoid browser blocking
+            }
+            showToast(`Saving ${imageStore.length} file(s)...`, 'info');
         });
 
-        function fallbackCopy(text) {
-            const ta = document.createElement('textarea');
-            ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
-            document.body.appendChild(ta); ta.select();
-            try { document.execCommand('copy'); showToast('Copied!', 'success'); }
-            catch { showToast('Copy failed. Select manually.', 'error'); }
-            document.body.removeChild(ta);
-        }
+        // ── Clear All ──
+        clearAllBtn.addEventListener('click', () => {
+            imageStore.forEach(e => URL.revokeObjectURL(e.blobUrl));
+            imageStore.length = 0;
+            gallery.innerHTML = '';
+            updateSummary();
+            showToast('All images cleared.', 'info');
+        });
 
         // ── Init ──
         updateSummary();
