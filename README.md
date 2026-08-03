@@ -2,6 +2,7 @@
 # SnapLink-Images
 - Upload any image, preview each one, grab download links individually, or bundle them all into a ZIP.
 ## Start using SnapLink-Images ➢ [SnapLink-Images](https://chris1111.github.io/SnapLink-Images/)
+### SnapLink-Images lets a user:
 
 	◦	upload one or more image files
 	◦	preview them locally
