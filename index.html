@@ -18,210 +18,801 @@
             --fg: #f0ebe3;
             --muted: #7a756f;
             --accent: #d4943a;
-            --accent-glow: rgba(212, 148, 58, 0.2);
+            --accent-glow: rgba(212,148,58,0.2);
             --accent-hover: #e8a838;
             --danger: #c44d4d;
             --success: #3dba6a;
-            --success-glow: rgba(61, 186, 106, 0.15);
-            --success-border: rgba(61, 186, 106, 0.3);
+            --success-glow: rgba(61,186,106,0.15);
+            --success-border: rgba(61,186,106,0.3);
             --warn: #c49a3a;
-            --warn-bg: rgba(196, 154, 58, 0.08);
-            --warn-border: rgba(196, 154, 58, 0.25);
+            --warn-bg: rgba(196,154,58,0.08);
+            --warn-border: rgba(196,154,58,0.25);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--fg); min-height: 100vh; overflow-x: hidden; }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
         h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif; }
 
-        /* ═══ WORLD CANVAS — persistent background ═══ */
         #worldCanvas {
             position: fixed;
             inset: 0;
             z-index: 0;
             pointer-events: none;
         }
+        .bg-atmosphere {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .bg-atmosphere::before {
+            content: '';
+            position: absolute;
+            width: 700px;
+            height: 700px;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            top: -300px;
+            right: -200px;
+            animation: float1 14s ease-in-out infinite;
+        }
+        .bg-atmosphere::after {
+            content: '';
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(61,186,106,0.06) 0%, transparent 70%);
+            bottom: -200px;
+            left: -150px;
+            animation: float2 18s ease-in-out infinite;
+        }
+        @keyframes float1 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(-80px, 50px) scale(1.1); }
+        }
+        @keyframes float2 {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(60px, -50px); }
+        }
+        .noise-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0.025;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+        .grid-pattern {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0.03;
+            background-image: linear-gradient(var(--fg) 1px, transparent 1px), linear-gradient(90deg, var(--fg) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
 
-        .bg-atmosphere { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-        .bg-atmosphere::before { content: ''; position: absolute; width: 700px; height: 700px; background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%); top: -300px; right: -200px; animation: float1 14s ease-in-out infinite; }
-        .bg-atmosphere::after { content: ''; position: absolute; width: 500px; height: 500px; background: radial-gradient(circle, rgba(61,186,106,0.06) 0%, transparent 70%); bottom: -200px; left: -150px; animation: float2 18s ease-in-out infinite; }
-        @keyframes float1 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-80px, 50px) scale(1.1); } }
-        @keyframes float2 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(60px, -50px); } }
-        .noise-overlay { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0.025; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
-        .grid-pattern { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0.03; background-image: linear-gradient(var(--fg) 1px, transparent 1px), linear-gradient(90deg, var(--fg) 1px, transparent 1px); background-size: 60px 60px; }
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: 16px;
+            transition: all 0.4s cubic-bezier(0.25,0.46,0.45,0.94);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        .upload-zone::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, var(--accent-glow) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .upload-zone:hover,
+        .upload-zone.drag-over {
+            border-color: var(--accent);
+            background: rgba(212,148,58,0.03);
+        }
+        .upload-zone:hover::before,
+        .upload-zone.drag-over::before { opacity: 1; }
+        .upload-zone.drag-over {
+            transform: scale(1.005);
+            box-shadow: 0 0 50px var(--accent-glow);
+        }
+        .upload-zone.uploading {
+            border-color: var(--success);
+            pointer-events: none;
+        }
+        .upload-icon-ring {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.4s ease;
+        }
+        .upload-zone:hover .upload-icon-ring {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
 
-        .upload-zone { border: 2px dashed var(--border); border-radius: 16px; transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); position: relative; overflow: hidden; cursor: pointer; }
-        .upload-zone::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at center, var(--accent-glow) 0%, transparent 70%); opacity: 0; transition: opacity 0.4s ease; }
-        .upload-zone:hover, .upload-zone.drag-over { border-color: var(--accent); background: rgba(212, 148, 58, 0.03); }
-        .upload-zone:hover::before, .upload-zone.drag-over::before { opacity: 1; }
-        .upload-zone.drag-over { transform: scale(1.005); box-shadow: 0 0 50px var(--accent-glow); }
-        .upload-zone.uploading { border-color: var(--success); pointer-events: none; }
-
-        .upload-icon-ring { width: 72px; height: 72px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; transition: all 0.4s ease; }
-        .upload-zone:hover .upload-icon-ring { border-color: var(--accent); box-shadow: 0 0 20px var(--accent-glow); }
-
-        .image-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; transition: all 0.35s ease; animation: cardIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; opacity: 0; }
-        .image-card:hover { border-color: rgba(212, 148, 58, 0.3); box-shadow: 0 8px 32px rgba(0,0,0,0.4); transform: translateY(-3px); }
-        @keyframes cardIn { from { opacity: 0; transform: translateY(24px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
-
-        .card-preview { width: 100%; height: 200px; object-fit: contain; background: repeating-conic-gradient(#141414 0% 25%, #1c1c1c 0% 50%) 0 0 / 18px 18px; display: block; cursor: pointer; transition: filter 0.3s ease; }
+        .image-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            transition: all 0.35s ease;
+            animation: cardIn 0.5s cubic-bezier(0.25,0.46,0.45,0.94) forwards;
+            opacity: 0;
+        }
+        .image-card:hover {
+            border-color: rgba(212,148,58,0.3);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            transform: translateY(-3px);
+        }
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(24px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .card-preview {
+            width: 100%;
+            height: 200px;
+            object-fit: contain;
+            background: repeating-conic-gradient(#141414 0% 25%, #1c1c1c 0% 50%) 0 0 / 18px 18px;
+            display: block;
+            cursor: pointer;
+            transition: filter 0.3s ease;
+        }
         .card-preview:hover { filter: brightness(1.08); }
+        .card-upload-progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--border);
+        }
+        .card-upload-progress-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 0 2px 2px 0;
+            background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+            transition: width 0.3s ease;
+        }
+        .card-upload-progress-fill.done {
+            background: linear-gradient(90deg, var(--success), #5fd88a);
+        }
 
-        .card-upload-progress { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--border); }
-        .card-upload-progress-fill { height: 100%; width: 0%; border-radius: 0 2px 2px 0; background: linear-gradient(90deg, var(--accent), var(--accent-hover)); transition: width 0.3s ease; }
-        .card-upload-progress-fill.done { background: linear-gradient(90deg, var(--success), #5fd88a); }
-
-        .status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
-        .status-badge.uploading { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-border); }
-        .status-badge.live { background: var(--success-glow); color: var(--success); border: 1px solid var(--success-border); }
-        .status-badge.error { background: rgba(196,77,77,0.1); color: var(--danger); border: 1px solid rgba(196,77,77,0.3); }
-        .status-badge .dot { width: 6px; height: 6px; border-radius: 50%; }
-        .status-badge.uploading .dot { background: var(--warn); animation: blink 1s ease infinite; }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.68rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .status-badge.uploading {
+            background: var(--warn-bg);
+            color: var(--warn);
+            border: 1px solid var(--warn-border);
+        }
+        .status-badge.live {
+            background: var(--success-glow);
+            color: var(--success);
+            border: 1px solid var(--success-border);
+        }
+        .status-badge.error {
+            background: rgba(196,77,77,0.1);
+            color: var(--danger);
+            border: 1px solid rgba(196,77,77,0.3);
+        }
+        .status-badge .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+        .status-badge.uploading .dot {
+            background: var(--warn);
+            animation: blink 1s ease infinite;
+        }
         .status-badge.live .dot { background: var(--success); }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
 
-        .real-link-box { background: var(--bg); border: 1px solid var(--success-border); border-radius: 8px; padding: 10px 12px; font-size: 0.78rem; color: var(--success); word-break: break-all; line-height: 1.5; font-family: 'DM Sans', monospace; display: flex; align-items: center; gap: 8px; }
-        .real-link-box a { color: var(--success); text-decoration: none; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .real-link-box a:hover { text-decoration: underline; }
-        .real-link-box .copy-mini { flex-shrink: 0; background: none; border: none; color: var(--muted); cursor: pointer; padding: 4px; transition: color 0.2s; }
-        .real-link-box .copy-mini:hover { color: var(--success); }
+        .size-link-box {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 0.73rem;
+            color: var(--fg);
+            word-break: break-all;
+            line-height: 1.4;
+            font-family: 'DM Sans', monospace;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: border-color 0.2s;
+        }
+        .size-link-box:hover { border-color: var(--muted); }
+        .size-link-box.uploading-size {
+            border-color: var(--warn-border);
+            color: var(--warn);
+        }
+        .size-link-box.live-size {
+            border-color: var(--success-border);
+            color: var(--success);
+        }
+        .size-link-box.error-size {
+            border-color: rgba(196,77,77,0.3);
+            color: var(--danger);
+        }
+        .size-link-box .size-label {
+            flex-shrink: 0;
+            font-weight: 600;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: var(--bg-elevated);
+            color: var(--muted);
+            min-width: 50px;
+            text-align: center;
+        }
+        .size-link-box.live-size .size-label {
+            background: var(--success-glow);
+            color: var(--success);
+        }
+        .size-link-box.uploading-size .size-label {
+            background: var(--warn-bg);
+            color: var(--warn);
+        }
+        .size-link-box a {
+            color: inherit;
+            text-decoration: none;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .size-link-box a:hover { text-decoration: underline; }
+        .size-link-box .copy-mini {
+            flex-shrink: 0;
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 3px;
+            transition: color 0.2s;
+            font-size: 0.75rem;
+        }
+        .size-link-box .copy-mini:hover { color: var(--accent); }
+        .size-link-box .size-dims {
+            flex-shrink: 0;
+            font-size: 0.62rem;
+            color: var(--muted);
+            font-family: 'Space Grotesk', monospace;
+        }
 
-        .btn-primary { background: var(--accent); color: #0a0a0a; font-weight: 600; padding: 10px 18px; border-radius: 9px; border: none; cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-size: 0.85rem; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 7px; }
-        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-2px); box-shadow: 0 8px 24px var(--accent-glow); }
+        .btn-primary {
+            background: var(--accent);
+            color: #0a0a0a;
+            font-weight: 600;
+            padding: 10px 18px;
+            border-radius: 9px;
+            border: none;
+            cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px var(--accent-glow);
+        }
         .btn-primary:active { transform: translateY(0); }
-        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+        .btn-primary:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        .btn-sm {
+            padding: 7px 12px;
+            border-radius: 7px;
+            border: 1px solid var(--border);
+            background: var(--bg-elevated);
+            color: var(--fg);
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.78rem;
+            transition: all 0.25s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn-sm:hover {
+            border-color: var(--muted);
+            background: var(--border);
+        }
+        .btn-download {
+            padding: 7px 12px;
+            border-radius: 7px;
+            border: 1px solid var(--accent);
+            background: rgba(212,148,58,0.08);
+            color: var(--accent);
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 600;
+            transition: all 0.25s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn-download:hover {
+            background: rgba(212,148,58,0.18);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+        .btn-danger-sm {
+            padding: 7px 12px;
+            border-radius: 7px;
+            border: 1px solid rgba(196,77,77,0.2);
+            background: transparent;
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 0.78rem;
+            transition: all 0.25s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn-danger-sm:hover {
+            background: rgba(196,77,77,0.1);
+            border-color: var(--danger);
+        }
+        .btn-outline-accent {
+            padding: 10px 18px;
+            border-radius: 9px;
+            border: 1px solid var(--accent);
+            background: transparent;
+            color: var(--accent);
+            cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .btn-outline-accent:hover {
+            background: rgba(212,148,58,0.1);
+            transform: translateY(-2px);
+        }
+        .btn-success {
+            padding: 10px 18px;
+            border-radius: 9px;
+            border: 1px solid var(--success-border);
+            background: var(--success-glow);
+            color: var(--success);
+            cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .btn-success:hover {
+            background: rgba(61,186,106,0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--success-glow);
+        }
+        .btn-success:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        .btn-zip {
+            padding: 10px 18px;
+            border-radius: 9px;
+            border: 1px solid rgba(212,148,58,0.4);
+            background: linear-gradient(135deg, rgba(212,148,58,0.12), rgba(212,148,58,0.04));
+            color: var(--accent);
+            cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .btn-zip:hover {
+            background: linear-gradient(135deg, rgba(212,148,58,0.22), rgba(212,148,58,0.1));
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--accent-glow);
+        }
+        .btn-zip:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
 
-        .btn-sm { padding: 7px 12px; border-radius: 7px; border: 1px solid var(--border); background: var(--bg-elevated); color: var(--fg); cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.78rem; transition: all 0.25s ease; display: inline-flex; align-items: center; gap: 5px; }
-        .btn-sm:hover { border-color: var(--muted); background: var(--border); }
-
-        .btn-download { padding: 7px 12px; border-radius: 7px; border: 1px solid var(--accent); background: rgba(212,148,58,0.08); color: var(--accent); cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.78rem; font-weight: 600; transition: all 0.25s ease; display: inline-flex; align-items: center; gap: 5px; }
-        .btn-download:hover { background: rgba(212,148,58,0.18); transform: translateY(-1px); box-shadow: 0 4px 12px var(--accent-glow); }
-
-        .btn-danger-sm { padding: 7px 12px; border-radius: 7px; border: 1px solid rgba(196,77,77,0.2); background: transparent; color: var(--danger); cursor: pointer; font-size: 0.78rem; transition: all 0.25s ease; display: inline-flex; align-items: center; gap: 5px; }
-        .btn-danger-sm:hover { background: rgba(196,77,77,0.1); border-color: var(--danger); }
-
-        .btn-outline-accent { padding: 10px 18px; border-radius: 9px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-size: 0.85rem; font-weight: 500; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 7px; }
-        .btn-outline-accent:hover { background: rgba(212,148,58,0.1); transform: translateY(-2px); }
-
-        .btn-success { padding: 10px 18px; border-radius: 9px; border: 1px solid var(--success-border); background: var(--success-glow); color: var(--success); cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-size: 0.85rem; font-weight: 600; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 7px; }
-        .btn-success:hover { background: rgba(61,186,106,0.2); transform: translateY(-2px); box-shadow: 0 6px 20px var(--success-glow); }
-        .btn-success:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
-
-        .btn-zip { padding: 10px 18px; border-radius: 9px; border: 1px solid rgba(212,148,58,0.4); background: linear-gradient(135deg, rgba(212,148,58,0.12), rgba(212,148,58,0.04)); color: var(--accent); cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-size: 0.85rem; font-weight: 600; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 7px; }
-        .btn-zip:hover { background: linear-gradient(135deg, rgba(212,148,58,0.22), rgba(212,148,58,0.1)); transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); }
-        .btn-zip:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
-
-        .summary-bar { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-        .summary-stat { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
-        .summary-stat .num { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1.15rem; color: var(--accent); }
+        .summary-bar {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .summary-stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+        }
+        .summary-stat .num {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 1.15rem;
+            color: var(--accent);
+        }
         .summary-stat .lbl { color: var(--muted); }
 
-        .progress-bar-track { width: 100%; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
-        .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-hover)); border-radius: 2px; width: 0%; transition: width 0.3s ease; }
+        .progress-bar-track {
+            width: 100%;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
 
-        .toast-container { position: fixed; top: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 10px; }
-        .toast { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 20px; display: flex; align-items: center; gap: 10px; font-size: 0.88rem; box-shadow: 0 12px 40px rgba(0,0,0,0.5); animation: toastIn 0.4s cubic-bezier(0.25,0.46,0.45,0.94) forwards; min-width: 260px; }
+        .toast-container {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .toast {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.88rem;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+            animation: toastIn 0.4s cubic-bezier(0.25,0.46,0.45,0.94) forwards;
+            min-width: 260px;
+        }
         .toast.leaving { animation: toastOut 0.3s ease forwards; }
-        @keyframes toastIn { from { opacity: 0; transform: translateX(40px) scale(0.95); } to { opacity: 1; transform: translateX(0) scale(1); } }
-        @keyframes toastOut { from { opacity: 1; transform: translateX(0) scale(1); } to { opacity: 0; transform: translateX(40px) scale(0.95); } }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(40px) scale(0.95); }
+            to { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        @keyframes toastOut {
+            from { opacity: 1; transform: translateX(0) scale(1); }
+            to { opacity: 0; transform: translateX(40px) scale(0.95); }
+        }
 
-        .lightbox { position: fixed; inset: 0; z-index: 150; background: rgba(0,0,0,0.88); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; padding: 30px; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; cursor: zoom-out; }
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            z-index: 150;
+            background: rgba(0,0,0,0.88);
+            backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            cursor: zoom-out;
+        }
         .lightbox.active { opacity: 1; pointer-events: auto; }
-        .lightbox img { max-width: 92vw; max-height: 88vh; object-fit: contain; border-radius: 8px; background: repeating-conic-gradient(#141414 0% 25%, #1c1c1c 0% 50%) 0 0 / 20px 20px; transform: scale(0.92); transition: transform 0.35s ease; }
+        .lightbox img {
+            max-width: 92vw;
+            max-height: 88vh;
+            object-fit: contain;
+            border-radius: 8px;
+            background: repeating-conic-gradient(#141414 0% 25%, #1c1c1c 0% 50%) 0 0 / 20px 20px;
+            transform: scale(0.92);
+            transition: transform 0.35s ease;
+        }
         .lightbox.active img { transform: scale(1); }
 
-        /* ═══ VERTICAL LINE REVEAL ═══ */
         .fx-slide-reveal {
-            position: fixed; z-index: 305; pointer-events: none;
-            top: 0; width: 3px; height: 100vh; opacity: 0;
-            animation: fxSlideAcross var(--travel, 0.6s) cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+            position: fixed; z-index: 305; pointer-events: none; top: 0;
+            width: 3px; height: 100vh; opacity: 0;
+            animation: fxSlideAcross var(--travel, 0.6s) cubic-bezier(0.22,0.61,0.36,1) forwards;
         }
         @keyframes fxSlideAcross {
-            0%   { opacity: 0; transform: translateX(var(--start-x)); }
-            5%   { opacity: 1; }
-            50%  { opacity: 1; }
-            85%  { opacity: 0.6; }
+            0% { opacity: 0; transform: translateX(var(--start-x)); }
+            5% { opacity: 1; }
+            50% { opacity: 1; }
+            85% { opacity: 0.6; }
             100% { opacity: 0; transform: translateX(var(--end-x)); }
         }
         .fx-slide-glow {
-            position: fixed; z-index: 304; pointer-events: none;
-            top: 0; width: 40px; height: 100vh; opacity: 0;
-            animation: fxSlideGlow var(--travel, 0.6s) cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+            position: fixed; z-index: 304; pointer-events: none; top: 0;
+            width: 40px; height: 100vh; opacity: 0;
+            animation: fxSlideGlow var(--travel, 0.6s) cubic-bezier(0.22,0.61,0.36,1) forwards;
         }
         @keyframes fxSlideGlow {
-            0%   { opacity: 0; transform: translateX(var(--start-x)); }
-            8%   { opacity: 0.5; }
-            50%  { opacity: 0.5; }
-            85%  { opacity: 0.2; }
+            0% { opacity: 0; transform: translateX(var(--start-x)); }
+            8% { opacity: 0.5; }
+            50% { opacity: 0.5; }
+            85% { opacity: 0.2; }
             100% { opacity: 0; transform: translateX(var(--end-x)); }
         }
         .fx-slide-edge {
             position: fixed; z-index: 306; pointer-events: none;
             width: 40px; height: 60px; opacity: 0;
-            animation: fxSlideEdge var(--travel, 0.6s) cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+            animation: fxSlideEdge var(--travel, 0.6s) cubic-bezier(0.22,0.61,0.36,1) forwards;
         }
         @keyframes fxSlideEdge {
-            0%   { opacity: 0; transform: translateX(var(--start-x)); }
-            10%  { opacity: 0.8; }
-            50%  { opacity: 0.8; }
-            80%  { opacity: 0.3; }
+            0% { opacity: 0; transform: translateX(var(--start-x)); }
+            10% { opacity: 0.8; }
+            50% { opacity: 0.8; }
+            80% { opacity: 0.3; }
             100% { opacity: 0; transform: translateX(var(--end-x)); }
         }
-
-        /* ═══ Flash / Blade / Orbit / Spark / Disc ═══ */
-        .fx-flash { position: fixed; z-index: 310; pointer-events: none; border-radius: 50%; animation: fxFlash 0.35s ease-out forwards; }
-        @keyframes fxFlash { 0% { opacity: 0.9; transform: translate(-50%,-50%) scale(0); } 100% { opacity: 0; transform: translate(-50%,-50%) scale(1); } }
-
-        .fx-blade { position: fixed; z-index: 309; pointer-events: none; transform-origin: 0% 50%; opacity: 0; animation: fxBlade 0.5s cubic-bezier(0.22,0.61,0.36,1) forwards; }
-        @keyframes fxBlade { 0% { opacity: 0; clip-path: inset(0 100% 0 0); } 15% { opacity: 1; } 50% { opacity: 1; clip-path: inset(0 0% 0 0); } 100% { opacity: 0; clip-path: inset(0 0% 0 0); } }
-
-        .fx-orbit { position: fixed; z-index: 308; pointer-events: none; border-radius: 50%; opacity: 0; animation: fxOrbit 0.8s cubic-bezier(0.25,0.46,0.45,0.94) forwards; animation-delay: 0.1s; }
-        @keyframes fxOrbit { 0% { opacity: 0; transform: translate(-50%,-50%) scale(0) rotate(0deg); } 20% { opacity: 1; } 80% { opacity: 0.6; } 100% { opacity: 0; transform: translate(-50%,-50%) scale(1) rotate(180deg); } }
-
-        .fx-spark-in { position: fixed; z-index: 307; pointer-events: none; border-radius: 50%; opacity: 0; will-change: transform, opacity; animation: fxSparkIn var(--dur) cubic-bezier(0.22,0.61,0.36,1) forwards; animation-delay: var(--del, 0s); }
-        @keyframes fxSparkIn { 0% { opacity: 0; transform: translate(var(--sx),var(--sy)) scale(0); } 8% { opacity: var(--peak,1); transform: translate(var(--sx),var(--sy)) scale(1.3); } 30% { opacity: var(--peak,1); transform: translate(calc(var(--sx)*0.5),calc(var(--sy)*0.5)) scale(1); } 70% { opacity: calc(var(--peak,1)*0.7); transform: translate(calc(var(--sx)*0.08),calc(var(--sy)*0.08)) scale(0.6); } 100% { opacity: 0; transform: translate(0px,0px) scale(0); } }
-
-        .fx-disc { position: fixed; z-index: 306; pointer-events: none; border-radius: 50%; opacity: 0; animation: fxDisc 0.6s ease-out forwards; animation-delay: 0.05s; }
-        @keyframes fxDisc { 0% { opacity: 0.5; transform: translate(-50%,-50%) scale(0); } 100% { opacity: 0; transform: translate(-50%,-50%) scale(1); } }
-
-        /* ═══ Explosion ═══ */
-        .fx-explode-flash { position: fixed; z-index: 315; pointer-events: none; border-radius: 50%; opacity: 0; animation: fxExplodeFlash 0.4s ease-out forwards; }
-        @keyframes fxExplodeFlash { 0% { opacity: 1; transform: translate(-50%,-50%) scale(0); } 30% { opacity: 0.9; transform: translate(-50%,-50%) scale(0.5); } 100% { opacity: 0; transform: translate(-50%,-50%) scale(1); } }
-
-        .fx-explode-ring { position: fixed; z-index: 314; pointer-events: none; border-radius: 50%; opacity: 0; animation: fxExplodeRing 0.55s ease-out forwards; }
-        @keyframes fxExplodeRing { 0% { opacity: 0.9; transform: translate(-50%,-50%) scale(0); border-width: 4px; } 40% { opacity: 0.6; border-width: 2.5px; } 100% { opacity: 0; transform: translate(-50%,-50%) scale(1); border-width: 0.5px; } }
-
-        .fx-explode-streak { position: fixed; z-index: 313; pointer-events: none; transform-origin: 0% 50%; opacity: 0; animation: fxExplodeStreak var(--dur) ease-out forwards; }
-        @keyframes fxExplodeStreak { 0% { opacity: 0; clip-path: inset(0 100% 0 0); } 10% { opacity: var(--peak,1); } 40% { opacity: var(--peak,1); clip-path: inset(0 0% 0 0); } 100% { opacity: 0; clip-path: inset(0 0% 0 0); } }
-
-        .fx-explode-shrapnel { position: fixed; z-index: 312; pointer-events: none; opacity: 0; will-change: transform, opacity; animation: fxExplodeShrapnel var(--dur) cubic-bezier(0.25,0.46,0.45,0.94) forwards; }
-        @keyframes fxExplodeShrapnel { 0% { opacity: 0; transform: translate(0,0) rotate(0deg) scale(0); } 8% { opacity: var(--peak,1); transform: translate(calc(var(--dx)*0.08),calc(var(--dy)*0.08)) rotate(20deg) scale(1.2); } 35% { opacity: var(--peak,1); transform: translate(calc(var(--dx)*0.55),calc(var(--dy)*0.45)) rotate(180deg) scale(1); } 65% { opacity: calc(var(--peak,1)*0.5); transform: translate(var(--dx),calc(var(--dy)*0.75)) rotate(320deg) scale(0.7); } 100% { opacity: 0; transform: translate(var(--dx),var(--dy)) rotate(450deg) scale(0); } }
-
-        .fx-explode-ember { position: fixed; z-index: 311; pointer-events: none; border-radius: 50%; opacity: 0; will-change: transform, opacity; animation: fxExplodeEmber var(--dur) ease-out forwards; }
-        @keyframes fxExplodeEmber { 0% { opacity: 0; transform: translate(0,0) scale(0); } 6% { opacity: var(--peak,1); transform: translate(calc(var(--dx)*0.05),calc(var(--dy)*0.05)) scale(1); } 30% { opacity: var(--peak,1); transform: translate(calc(var(--dx)*0.4),calc(var(--dy)*0.35)) scale(0.9); } 100% { opacity: 0; transform: translate(var(--dx),var(--dy)) scale(0); } }
-
-        .fx-explode-ring-2 { position: fixed; z-index: 310; pointer-events: none; border-radius: 50%; opacity: 0; animation: fxExplodeRing2 0.7s ease-out forwards; animation-delay: 0.08s; }
-        @keyframes fxExplodeRing2 { 0% { opacity: 0.6; transform: translate(-50%,-50%) scale(0); } 100% { opacity: 0; transform: translate(-50%,-50%) scale(1); } }
-
-        /* ═══ Combo text / badge ═══ */
-        .fx-text { position: fixed; z-index: 316; pointer-events: none; font-family: 'Space Grotesk', sans-serif; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0; animation: fxTextSlam 0.7s cubic-bezier(0.22,0.61,0.36,1) forwards; animation-delay: 0.15s; }
-        @keyframes fxTextSlam { 0% { opacity: 0; transform: translate(-50%,-80px) scale(2); filter: blur(8px); } 30% { opacity: 1; transform: translate(-50%,0px) scale(0.95); filter: blur(0px); } 50% { opacity: 1; transform: translate(-50%,2px) scale(1.02); } 70% { opacity: 1; transform: translate(-50%,0px) scale(1); } 100% { opacity: 0; transform: translate(-50%,-15px) scale(0.9); } }
-
-        .combo-badge { position: fixed; bottom: 28px; left: 28px; z-index: 313; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0; color: var(--accent); background: var(--card); border: 1px solid var(--accent); border-radius: 12px; padding: 0; pointer-events: none; opacity: 0; transform: scale(0.8) translateY(10px); transition: all 0.3s cubic-bezier(0.22,0.61,0.36,1); box-shadow: 0 0 30px var(--accent-glow), inset 0 0 20px rgba(212,148,58,0.05); }
-        .combo-badge.visible { opacity: 1; transform: scale(1) translateY(0); font-size: 0.85rem; padding: 10px 18px; }
-        .combo-badge.tier2 { border-color: var(--success); color: var(--success); box-shadow: 0 0 30px var(--success-glow), inset 0 0 20px rgba(61,186,106,0.05); font-size: 0.95rem; }
-        .combo-badge.tier3 { border-color: #ffd700; color: #ffd700; box-shadow: 0 0 40px rgba(255,215,0,0.3), inset 0 0 20px rgba(255,215,0,0.05); font-size: 1.1rem; }
-
-        .zip-overlay { position: fixed; inset: 0; z-index: 160; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        .fx-flash {
+            position: fixed; z-index: 310; pointer-events: none; border-radius: 50%;
+            animation: fxFlash 0.35s ease-out forwards;
+        }
+        @keyframes fxFlash {
+            0% { opacity: 0.9; transform: translate(-50%,-50%) scale(0); }
+            100% { opacity: 0; transform: translate(-50%,-50%) scale(1); }
+        }
+        .fx-blade {
+            position: fixed; z-index: 309; pointer-events: none;
+            transform-origin: 0% 50%; opacity: 0;
+            animation: fxBlade 0.5s cubic-bezier(0.22,0.61,0.36,1) forwards;
+        }
+        @keyframes fxBlade {
+            0% { opacity: 0; clip-path: inset(0 100% 0 0); }
+            15% { opacity: 1; }
+            50% { opacity: 1; clip-path: inset(0 0% 0 0); }
+            100% { opacity: 0; clip-path: inset(0 0% 0 0); }
+        }
+        .fx-orbit {
+            position: fixed; z-index: 308; pointer-events: none;
+            border-radius: 50%; opacity: 0;
+            animation: fxOrbit 0.8s cubic-bezier(0.25,0.46,0.45,0.94) forwards;
+            animation-delay: 0.1s;
+        }
+        @keyframes fxOrbit {
+            0% { opacity: 0; transform: translate(-50%,-50%) scale(0) rotate(0deg); }
+            20% { opacity: 1; }
+            80% { opacity: 0.6; }
+            100% { opacity: 0; transform: translate(-50%,-50%) scale(1) rotate(180deg); }
+        }
+        .fx-spark-in {
+            position: fixed; z-index: 307; pointer-events: none;
+            border-radius: 50%; opacity: 0; will-change: transform, opacity;
+            animation: fxSparkIn var(--dur) cubic-bezier(0.22,0.61,0.36,1) forwards;
+            animation-delay: var(--del, 0s);
+        }
+        @keyframes fxSparkIn {
+            0% { opacity: 0; transform: translate(var(--sx),var(--sy)) scale(0); }
+            8% { opacity: var(--peak,1); transform: translate(var(--sx),var(--sy)) scale(1.3); }
+            30% { opacity: var(--peak,1); transform: translate(calc(var(--sx)*0.5),calc(var(--sy)*0.5)) scale(1); }
+            70% { opacity: calc(var(--peak,1)*0.7); transform: translate(calc(var(--sx)*0.08),calc(var(--sy)*0.08)) scale(0.6); }
+            100% { opacity: 0; transform: translate(0px,0px) scale(0); }
+        }
+        .fx-disc {
+            position: fixed; z-index: 306; pointer-events: none;
+            border-radius: 50%; opacity: 0;
+            animation: fxDisc 0.6s ease-out forwards; animation-delay: 0.05s;
+        }
+        @keyframes fxDisc {
+            0% { opacity: 0.5; transform: translate(-50%,-50%) scale(0); }
+            100% { opacity: 0; transform: translate(-50%,-50%) scale(1); }
+        }
+        .fx-explode-flash {
+            position: fixed; z-index: 315; pointer-events: none;
+            border-radius: 50%; opacity: 0;
+            animation: fxExplodeFlash 0.4s ease-out forwards;
+        }
+        @keyframes fxExplodeFlash {
+            0% { opacity: 1; transform: translate(-50%,-50%) scale(0); }
+            30% { opacity: 0.9; transform: translate(-50%,-50%) scale(0.5); }
+            100% { opacity: 0; transform: translate(-50%,-50%) scale(1); }
+        }
+        .fx-explode-ring {
+            position: fixed; z-index: 314; pointer-events: none;
+            border-radius: 50%; opacity: 0;
+            animation: fxExplodeRing 0.55s ease-out forwards;
+        }
+        @keyframes fxExplodeRing {
+            0% { opacity: 0.9; transform: translate(-50%,-50%) scale(0); border-width: 4px; }
+            40% { opacity: 0.6; border-width: 2.5px; }
+            100% { opacity: 0; transform: translate(-50%,-50%) scale(1); border-width: 0.5px; }
+        }
+        .fx-explode-streak {
+            position: fixed; z-index: 313; pointer-events: none;
+            transform-origin: 0% 50%; opacity: 0;
+            animation: fxExplodeStreak var(--dur) ease-out forwards;
+        }
+        @keyframes fxExplodeStreak {
+            0% { opacity: 0; clip-path: inset(0 100% 0 0); }
+            10% { opacity: var(--peak,1); }
+            40% { opacity: var(--peak,1); clip-path: inset(0 0% 0 0); }
+            100% { opacity: 0; clip-path: inset(0 0% 0 0); }
+        }
+        .fx-explode-shrapnel {
+            position: fixed; z-index: 312; pointer-events: none;
+            opacity: 0; will-change: transform, opacity;
+            animation: fxExplodeShrapnel var(--dur) cubic-bezier(0.25,0.46,0.45,0.94) forwards;
+        }
+        @keyframes fxExplodeShrapnel {
+            0% { opacity: 0; transform: translate(0,0) rotate(0deg) scale(0); }
+            8% { opacity: var(--peak,1); transform: translate(calc(var(--dx)*0.08),calc(var(--dy)*0.08)) rotate(20deg) scale(1.2); }
+            35% { opacity: var(--peak,1); transform: translate(calc(var(--dx)*0.55),calc(var(--dy)*0.45)) rotate(180deg) scale(1); }
+            65% { opacity: calc(var(--peak,1)*0.5); transform: translate(var(--dx),calc(var(--dy)*0.75)) rotate(320deg) scale(0.7); }
+            100% { opacity: 0; transform: translate(var(--dx),var(--dy)) rotate(450deg) scale(0); }
+        }
+        .fx-explode-ember {
+            position: fixed; z-index: 311; pointer-events: none;
+            border-radius: 50%; opacity: 0; will-change: transform, opacity;
+            animation: fxExplodeEmber var(--dur) ease-out forwards;
+        }
+        @keyframes fxExplodeEmber {
+            0% { opacity: 0; transform: translate(0,0) scale(0); }
+            6% { opacity: var(--peak,1); transform: translate(calc(var(--dx)*0.05),calc(var(--dy)*0.05)) scale(1); }
+            30% { opacity: var(--peak,1); transform: translate(calc(var(--dx)*0.4),calc(var(--dy)*0.35)) scale(0.9); }
+            100% { opacity: 0; transform: translate(var(--dx),var(--dy)) scale(0); }
+        }
+        .fx-explode-ring-2 {
+            position: fixed; z-index: 310; pointer-events: none;
+            border-radius: 50%; opacity: 0;
+            animation: fxExplodeRing2 0.7s ease-out forwards; animation-delay: 0.08s;
+        }
+        @keyframes fxExplodeRing2 {
+            0% { opacity: 0.6; transform: translate(-50%,-50%) scale(0); }
+            100% { opacity: 0; transform: translate(-50%,-50%) scale(1); }
+        }
+        .fx-text {
+            position: fixed; z-index: 316; pointer-events: none;
+            font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+            letter-spacing: 0.08em; text-transform: uppercase; opacity: 0;
+            animation: fxTextSlam 0.7s cubic-bezier(0.22,0.61,0.36,1) forwards;
+            animation-delay: 0.15s;
+        }
+        @keyframes fxTextSlam {
+            0% { opacity: 0; transform: translate(-50%,-80px) scale(2); filter: blur(8px); }
+            30% { opacity: 1; transform: translate(-50%,0px) scale(0.95); filter: blur(0px); }
+            50% { opacity: 1; transform: translate(-50%,2px) scale(1.02); }
+            70% { opacity: 1; transform: translate(-50%,0px) scale(1); }
+            100% { opacity: 0; transform: translate(-50%,-15px) scale(0.9); }
+        }
+        .combo-badge {
+            position: fixed; bottom: 28px; left: 28px; z-index: 313;
+            font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0;
+            color: var(--accent); background: var(--card);
+            border: 1px solid var(--accent); border-radius: 12px; padding: 0;
+            pointer-events: none; opacity: 0;
+            transform: scale(0.8) translateY(10px);
+            transition: all 0.3s cubic-bezier(0.22,0.61,0.36,1);
+            box-shadow: 0 0 30px var(--accent-glow), inset 0 0 20px rgba(212,148,58,0.05);
+        }
+        .combo-badge.visible {
+            opacity: 1; transform: scale(1) translateY(0);
+            font-size: 0.85rem; padding: 10px 18px;
+        }
+        .combo-badge.tier2 {
+            border-color: var(--success); color: var(--success);
+            box-shadow: 0 0 30px var(--success-glow), inset 0 0 20px rgba(61,186,106,0.05);
+            font-size: 0.95rem;
+        }
+        .combo-badge.tier3 {
+            border-color: #ffd700; color: #ffd700;
+            box-shadow: 0 0 40px rgba(255,215,0,0.3), inset 0 0 20px rgba(255,215,0,0.05);
+            font-size: 1.1rem;
+        }
+        .zip-overlay {
+            position: fixed; inset: 0; z-index: 160;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
         .zip-overlay.active { opacity: 1; pointer-events: auto; }
-        .zip-box { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 32px 40px; text-align: center; min-width: 300px; transform: scale(0.95); transition: transform 0.3s ease; }
+        .zip-box {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 16px; padding: 32px 40px;
+            text-align: center; min-width: 300px;
+            transform: scale(0.95); transition: transform 0.3s ease;
+        }
         .zip-overlay.active .zip-box { transform: scale(1); }
-        .zip-spinner { width: 48px; height: 48px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+        .zip-spinner {
+            width: 48px; height: 48px;
+            border: 3px solid var(--border); border-top-color: var(--accent);
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .zip-progress-track { width: 100%; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 12px; }
-        .zip-progress-fill { height: 100%; width: 0%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--accent-hover)); transition: width 0.3s ease; }
+        .zip-progress-track {
+            width: 100%; height: 6px; background: var(--border);
+            border-radius: 3px; overflow: hidden; margin-top: 12px;
+        }
+        .zip-progress-fill {
+            height: 100%; width: 0%; border-radius: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+            transition: width 0.3s ease;
+        }
+        .sizes-section { padding: 0 14px 14px; }
+        .sizes-header {
+            display: flex; align-items: center; gap: 6px;
+            margin-bottom: 8px; padding-top: 10px; border-top: 1px solid var(--border);
+        }
+        .sizes-header span {
+            font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.08em; color: var(--muted);
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        .sizes-list { display: flex; flex-direction: column; gap: 5px; }
 
-        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
-        @media (max-width: 640px) { .card-preview { height: 150px; } .summary-bar { flex-direction: column; align-items: flex-start; } .summary-bar .flex { width: 100%; } .summary-bar .flex .btn-zip, .summary-bar .flex .btn-primary, .summary-bar .flex .btn-success, .summary-bar .flex .btn-outline-accent { flex: 1; justify-content: center; font-size: 0.78rem; padding: 9px 12px; } }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+        @media (max-width: 640px) {
+            .card-preview { height: 150px; }
+            .summary-bar { flex-direction: column; align-items: flex-start; }
+            .summary-bar .flex { width: 100%; }
+            .summary-bar .flex .btn-zip,
+            .summary-bar .flex .btn-primary,
+            .summary-bar .flex .btn-success,
+            .summary-bar .flex .btn-outline-accent {
+                flex: 1; justify-content: center; font-size: 0.78rem; padding: 9px 12px;
+            }
+            .size-link-box { font-size: 0.65rem; padding: 6px 8px; }
+        }
     </style>
 </head>
 <body>
@@ -237,7 +828,9 @@
             <div class="zip-spinner"></div>
             <h3 class="text-lg font-semibold mb-1" style="font-family:'Space Grotesk',sans-serif;">Creating ZIP</h3>
             <p class="text-sm" style="color:var(--muted);" id="zipStatus">Fetching images...</p>
-            <div class="zip-progress-track"><div class="zip-progress-fill" id="zipProgressFill"></div></div>
+            <div class="zip-progress-track">
+                <div class="zip-progress-fill" id="zipProgressFill"></div>
+            </div>
         </div>
     </div>
 
@@ -251,11 +844,17 @@
         <header class="py-6 px-6 md:px-10">
             <div class="max-w-6xl mx-auto flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: var(--accent);"><i class="fa-solid fa-cloud-arrow-up text-sm" style="color: var(--bg);"></i></div>
-                    <span class="font-semibold text-lg" style="font-family: 'Space Grotesk', sans-serif;">SnapLink-Images</span>
-                    <span class="text-xs px-2 py-0.5 rounded-full" style="background: var(--success-glow); color: var(--success); border: 1px solid var(--success-border); font-weight: 600;">LIVE</span>
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:var(--accent);">
+                        <i class="fa-solid fa-cloud-arrow-up text-sm" style="color:var(--bg);"></i>
+                    </div>
+                    <span class="font-semibold text-lg" style="font-family:'Space Grotesk',sans-serif;">SnapLink-Images</span>
+                    <span class="text-xs px-2 py-0.5 rounded-full" style="background:var(--success-glow);color:var(--success);border:1px solid var(--success-border);font-weight:600;">LIVE</span>
                 </div>
-                <div class="flex items-center gap-2 text-xs" style="color: var(--muted);"><i class="fa-solid fa-globe" style="color: var(--success);"></i><span>imgbb-Cloud-hosted permanent links</span><a href="https://github.com/chris1111/SnapLink-Images" style="color: var(--success);">View on ➥ Github</a></div>
+                <div class="flex items-center gap-2 text-xs" style="color:var(--muted);">
+                    <i class="fa-solid fa-globe" style="color:var(--success);"></i>
+                    <span>imgbb-Cloud-hosted permanent links</span>
+                    <a href="https://github.com/chris1111/SnapLink-Images" style="color:var(--success);">View on Github</a>
+                </div>
             </div>
         </header>
 
@@ -263,32 +862,60 @@
             <div class="max-w-6xl mx-auto">
                 <div class="text-center mt-4 mb-6">
                     <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-3">Upload Images</h1>
-                    <h4 class="text-4xl md:text-3xl font-bold tracking-tight mb-3">Get a Real Link</h4>
-                    <p class="text-base md:text-lg max-w-xl mx-auto" style="color: var(--muted); line-height: 1.6;">Drop single or multiple images, they go to the cloud instantly.</p>
-                    <p class="text-base md:text-lg max-w-xl mx-auto" style="color: var(--muted); line-height: 1.6;">You get a <strong style="color:var(--success);">permanent URL</strong> + download + ZIP for each one.</p>
+                    <h4 class="text-3xl md:text-2xl font-bold tracking-tight mb-3" style="color:var(--accent);">Get a Real Link</h4>
+                    <p class="text-base md:text-lg max-w-xl mx-auto" style="color:var(--muted);line-height:1.6;">
+                        Drop single or multiple images, they go to the cloud instantly.
+                    </p>
+                    <p class="text-base md:text-lg max-w-xl mx-auto" style="color:var(--muted);line-height:1.6;">
+                        You get a <strong style="color:var(--success);">permanent URL</strong> at every size —
+                    </p>
+                    <p class="text-base md:text-lg max-w-xl mx-auto" style="color:var(--muted);line-height:1.6;">
+                        Small (100px), Medium (320px), and Original.
+                    </p>
                 </div>
 
                 <div class="upload-zone p-10 md:p-14 text-center relative" id="uploadZone" role="button" tabindex="0">
                     <div class="relative z-10 flex flex-col items-center gap-3">
-                        <div class="upload-icon-ring"><i class="fa-solid fa-cloud-arrow-up text-4xl" style="color: var(--accent);"></i></div>
-                        <p class="text-lg font-semibold mt-1" style="font-family: 'Space Grotesk', sans-serif; color: var(--fg);">Drop your image here</p>
-                        <p class="text-sm" style="color: var(--muted);">or click to browse — PNG, JPEG, WebP, SVG supported</p>
+                        <div class="upload-icon-ring">
+                            <i class="fa-solid fa-cloud-arrow-up text-4xl" style="color:var(--accent);"></i>
+                        </div>
+                        <p class="text-lg font-semibold mt-1" style="font-family:'Space Grotesk',sans-serif;color:var(--fg);">Drop your image here</p>
+                        <p class="text-sm" style="color:var(--muted);">or click to browse — PNG, JPEG, WebP, SVG supported</p>
+                        <p class="text-xs mt-1" style="color:var(--muted);opacity:0.7;">Each image uploads 3 versions: Medium (320px), Original </p>
                     </div>
                 </div>
 
-                <div class="progress-bar-track mt-3 hidden" id="progressTrack"><div class="progress-bar-fill" id="progressFill"></div></div>
+                <div class="progress-bar-track mt-3 hidden" id="progressTrack">
+                    <div class="progress-bar-fill" id="progressFill"></div>
+                </div>
 
                 <div class="summary-bar mt-8 hidden" id="summaryBar">
                     <div class="flex items-center gap-6 flex-wrap">
-                        <div class="summary-stat"><span class="num" id="totalCount">0</span><span class="lbl">images</span></div>
-                        <div class="summary-stat"><span class="num" id="liveCount">0</span><span class="lbl">live links</span></div>
+                        <div class="summary-stat">
+                            <span class="num" id="totalCount">0</span>
+                            <span class="lbl">images</span>
+                        </div>
+                        <div class="summary-stat">
+                            <span class="num" id="liveCount">0</span>
+                            <span class="lbl">live links</span>
+                        </div>
                     </div>
                     <div class="flex items-center gap-3 flex-wrap">
-                        <button class="btn-zip" id="downloadZipBtn" disabled><i class="fa-solid fa-file-zipper"></i> Download ZIP</button>
-                        <button class="btn-primary" id="downloadAllBtn" disabled><i class="fa-solid fa-download"></i> Download All</button>
-                        <button class="btn-success" id="copyAllLinksBtn" disabled><i class="fa-regular fa-copy"></i> Copy All Links</button>
-                        <button class="btn-outline-accent" id="addMoreBtn"><i class="fa-solid fa-plus"></i> Add More</button>
-                        <button class="btn-danger-sm" id="clearAllBtn"><i class="fa-solid fa-trash-can"></i> Clear All</button>
+                        <button class="btn-zip" id="downloadZipBtn" disabled>
+                            <i class="fa-solid fa-file-zipper"></i> Download ZIP
+                        </button>
+                        <button class="btn-primary" id="downloadAllBtn" disabled>
+                            <i class="fa-solid fa-download"></i> Download All
+                        </button>
+                        <button class="btn-success" id="copyAllLinksBtn" disabled>
+                            <i class="fa-regular fa-copy"></i> Copy All Links
+                        </button>
+                        <button class="btn-outline-accent" id="addMoreBtn">
+                            <i class="fa-solid fa-plus"></i> Add More
+                        </button>
+                        <button class="btn-danger-sm" id="clearAllBtn">
+                            <i class="fa-solid fa-trash-can"></i> Clear All
+                        </button>
                     </div>
                 </div>
 
@@ -296,22 +923,22 @@
             </div>
         </section>
 
-        <footer class="py-5 px-6 text-center text-xs" style="color: var(--muted); border-top: 1px solid var(--border);">Built by with care. Your images never leave your device. Copyright © 2026 chris1111 , All Rights Reserved.</footer>
+        <footer class="py-5 px-6 text-center text-xs" style="color:var(--muted);border-top:1px solid var(--border);">
+            Built by with care. Your images never leave your device. Copyright © 2026 chris1111 , All Rights Reserved.
+        </footer>
     </main>
 
     <script>
-        /* ═══════════════════════════════════════════════
-           THE WORLD — persistent constellation canvas
-           Stars drift, connect when close, react to
-           combo explosions with shockwave pulses
-           ═══════════════════════════════════════════════ */
+        /* ═══════════════════════════════════════
+           WORLD CANVAS — constellation background
+           ═══════════════════════════════════════ */
         var canvas = document.getElementById('worldCanvas');
         var ctx = canvas.getContext('2d');
         var W, H;
         var stars = [];
         var STAR_COUNT = 90;
         var CONNECTION_DIST = 140;
-        var pulses = []; // explosion shockwave pulses
+        var pulses = [];
 
         function resizeCanvas() {
             W = canvas.width = window.innerWidth;
@@ -320,7 +947,6 @@
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
-        // Initialize stars
         for (var i = 0; i < STAR_COUNT; i++) {
             stars.push({
                 x: Math.random() * W,
@@ -330,16 +956,14 @@
                 r: 1 + Math.random() * 1.5,
                 baseAlpha: 0.15 + Math.random() * 0.25,
                 alpha: 0,
-                hue: Math.random() > 0.7 ? 38 : (Math.random() > 0.5 ? 145 : 0), // gold, green, or white
-                flash: 0 // extra brightness from pulses
+                hue: Math.random() > 0.7 ? 38 : Math.random() > 0.5 ? 145 : 0,
+                flash: 0
             });
         }
 
-        // Called by explosion to send a shockwave through the world
         function worldPulse(x, y, tier) {
             pulses.push({
-                x: x, y: y,
-                radius: 0,
+                x: x, y: y, radius: 0,
                 maxRadius: 200 + tier * 80,
                 speed: 6 + tier * 2,
                 alpha: 0.4 + tier * 0.15,
@@ -350,13 +974,12 @@
         function drawWorld() {
             ctx.clearRect(0, 0, W, H);
 
-            // Update pulses
+            // Update and draw pulses
             for (var p = pulses.length - 1; p >= 0; p--) {
                 var pulse = pulses[p];
                 pulse.radius += pulse.speed;
                 pulse.alpha *= 0.97;
 
-                // Draw pulse ring
                 ctx.beginPath();
                 ctx.arc(pulse.x, pulse.y, Math.max(1, pulse.radius), 0, Math.PI * 2);
                 ctx.strokeStyle = pulse.color;
@@ -383,15 +1006,14 @@
                 }
             }
 
-            // Update & draw connections
+            // Draw connections
             for (var i = 0; i < stars.length; i++) {
                 for (var j = i + 1; j < stars.length; j++) {
                     var dx = stars[i].x - stars[j].x;
                     var dy = stars[i].y - stars[j].y;
                     var dist = Math.sqrt(dx * dx + dy * dy);
                     if (dist < CONNECTION_DIST) {
-                        var lineAlpha = (1 - dist / CONNECTION_DIST) * 0.08;
-                        lineAlpha += (stars[i].flash + stars[j].flash) * 0.15;
+                        var lineAlpha = (1 - dist / CONNECTION_DIST) * 0.08 + (stars[i].flash + stars[j].flash) * 0.15;
                         ctx.beginPath();
                         ctx.moveTo(stars[i].x, stars[i].y);
                         ctx.lineTo(stars[j].x, stars[j].y);
@@ -403,7 +1025,7 @@
                 }
             }
 
-            // Update & draw stars
+            // Update and draw stars
             for (var k = 0; k < stars.length; k++) {
                 var s = stars[k];
                 s.x += s.vx;
@@ -412,25 +1034,25 @@
                 s.vy *= 0.995;
                 s.flash *= 0.95;
 
-                // Wrap around edges
+                // Wrap edges
                 if (s.x < -20) s.x = W + 20;
                 if (s.x > W + 20) s.x = -20;
                 if (s.y < -20) s.y = H + 20;
                 if (s.y > H + 20) s.y = -20;
 
-                // Slow random drift
+                // Random drift
                 s.vx += (Math.random() - 0.5) * 0.01;
                 s.vy += (Math.random() - 0.5) * 0.01;
-                // Clamp velocity
+
+                // Clamp speed
                 var speed = Math.sqrt(s.vx * s.vx + s.vy * s.vy);
-                if (speed > 1.5) { s.vx *= 1.5 / speed; s.vy *= 1.5 / speed; }
+                if (speed > 1.5) {
+                    s.vx *= 1.5 / speed;
+                    s.vy *= 1.5 / speed;
+                }
 
                 s.alpha = s.baseAlpha + s.flash;
-
-                var color;
-                if (s.hue === 38) color = 'rgba(212,148,58,';
-                else if (s.hue === 145) color = 'rgba(61,186,106,';
-                else color = 'rgba(240,235,227,';
+                var color = s.hue === 38 ? 'rgba(212,148,58,' : s.hue === 145 ? 'rgba(61,186,106,' : 'rgba(240,235,227,';
 
                 // Glow
                 ctx.beginPath();
@@ -453,18 +1075,17 @@
         drawWorld();
 
 
-        /* ═══════════════════════════════════════════════
-           APP LOGIC
-           ═══════════════════════════════════════════════ */
+        /* ═══════════════════════════════════════
+           APP STATE & DOM REFS
+           ═══════════════════════════════════════ */
         var API_KEY = '421c2ad393559d4900f8bd2cdb4d5d76';
         var imageStore = [];
         var idCounter = 0;
         var isUploading = false;
         var comboCount = 0;
         var comboTimer = null;
-        var mainEl = document.getElementById('mainEl');
-        var comboBadge = document.getElementById('comboBadge');
 
+        var comboBadge = document.getElementById('comboBadge');
         var uploadZone = document.getElementById('uploadZone');
         var fileInput = document.getElementById('fileInput');
         var progressTrack = document.getElementById('progressTrack');
@@ -485,312 +1106,1159 @@
         var lightboxImg = document.getElementById('lightboxImg');
         var toastContainer = document.getElementById('toastContainer');
 
-        function showToast(msg,type){ type=type||'info'; var icons={success:'<i class="fa-solid fa-circle-check" style="color:var(--success);font-size:1.1rem;flex-shrink:0;"></i>',error:'<i class="fa-solid fa-circle-xmark" style="color:var(--danger);font-size:1.1rem;flex-shrink:0;"></i>',info:'<i class="fa-solid fa-circle-info" style="color:var(--accent);font-size:1.1rem;flex-shrink:0;"></i>'}; var t=document.createElement('div'); t.className='toast'; t.innerHTML=(icons[type]||icons.info)+'<span>'+msg+'</span>'; toastContainer.appendChild(t); setTimeout(function(){ t.classList.add('leaving'); t.addEventListener('animationend',function(){ t.remove(); }); },3200); }
-        function fmtSize(b){ if(b===0) return '0 B'; var k=1024,s=['B','KB','MB','GB']; var i=Math.floor(Math.log(b)/Math.log(k)); return parseFloat((b/Math.pow(k,i)).toFixed(2))+' '+s[i]; }
-        function ext(name){ var p=name.split('.'); return p.length>1?p.pop().toUpperCase():'?'; }
-        function truncate(s,n){ return s.length>n?s.substring(0,n-2)+'...':s; }
-        function copyText(text){ if(navigator.clipboard&&navigator.clipboard.writeText){ return navigator.clipboard.writeText(text).then(function(){return true;}).catch(function(){return fallbackCopy(text);}); } return Promise.resolve(fallbackCopy(text)); }
-        function fallbackCopy(text){ var ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');return true;}catch(e){return false;} finally{document.body.removeChild(ta);} }
+        /* Size presets: Small 100px, Medium 320px, Original unchanged */
+        var SIZE_PRESETS = [
+            { key: 'small', label: 'Small', maxWidth: 100, quality: 0.80 },
+            { key: 'medium', label: 'Medium', maxWidth: 320, quality: 0.85 },
+            { key: 'original', label: 'Original', maxWidth: 0, quality: 0.92 }
+        ];
 
-        /* ═══ VERTICAL LINE REVEAL ═══ */
+
+        /* ═══════════════════════════════════════
+           UTILITY FUNCTIONS
+           ═══════════════════════════════════════ */
+        function showToast(msg, type) {
+            type = type || 'info';
+            var icons = {
+                success: '<i class="fa-solid fa-circle-check" style="color:var(--success);font-size:1.1rem;flex-shrink:0;"></i>',
+                error: '<i class="fa-solid fa-circle-xmark" style="color:var(--danger);font-size:1.1rem;flex-shrink:0;"></i>',
+                info: '<i class="fa-solid fa-circle-info" style="color:var(--accent);font-size:1.1rem;flex-shrink:0;"></i>'
+            };
+            var t = document.createElement('div');
+            t.className = 'toast';
+            t.innerHTML = (icons[type] || icons.info) + '<span>' + msg + '</span>';
+            toastContainer.appendChild(t);
+            setTimeout(function() {
+                t.classList.add('leaving');
+                t.addEventListener('animationend', function() { t.remove(); });
+            }, 3200);
+        }
+
+        function fmtSize(b) {
+            if (b === 0) return '0 B';
+            var k = 1024, s = ['B', 'KB', 'MB', 'GB'];
+            var i = Math.floor(Math.log(b) / Math.log(k));
+            return parseFloat((b / Math.pow(k, i)).toFixed(2)) + ' ' + s[i];
+        }
+
+        function ext(name) {
+            var p = name.split('.');
+            return p.length > 1 ? p.pop().toUpperCase() : '?';
+        }
+
+        function truncate(s, n) {
+            return s.length > n ? s.substring(0, n - 2) + '...' : s;
+        }
+
+        function escapeHtml(s) {
+            var d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
+        function escapeAttr(s) {
+            return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function copyText(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                return navigator.clipboard.writeText(text).then(function() { return true; }).catch(function() { return fallbackCopy(text); });
+            }
+            return Promise.resolve(fallbackCopy(text));
+        }
+
+        function fallbackCopy(text) {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); return true; }
+            catch (e) { return false; }
+            finally { document.body.removeChild(ta); }
+        }
+
+        function getMimeFromName(name) {
+            var l = name.toLowerCase();
+            if (l.endsWith('.png')) return 'image/png';
+            if (l.endsWith('.webp')) return 'image/webp';
+            if (l.endsWith('.gif')) return 'image/gif';
+            return 'image/jpeg';
+        }
+
+        function getExtFromName(name) {
+            var l = name.toLowerCase();
+            if (l.endsWith('.png')) return '.png';
+            if (l.endsWith('.webp')) return '.webp';
+            if (l.endsWith('.gif')) return '.gif';
+            return '.jpg';
+        }
+
+
+        /* ═══════════════════════════════════════
+           CANVAS RESIZE — preserves original format
+           ═══════════════════════════════════════ */
+        function resizeImageToBlob(file, maxWidth, quality, mimeType) {
+            return new Promise(function(resolve, reject) {
+                var img = new Image();
+                var url = URL.createObjectURL(file);
+
+                img.onload = function() {
+                    URL.revokeObjectURL(url);
+                    var w = img.naturalWidth;
+                    var h = img.naturalHeight;
+
+                    // If no resize needed, re-encode as-is
+                    if (maxWidth === 0 || w <= maxWidth) {
+                        var c = document.createElement('canvas');
+                        c.width = w;
+                        c.height = h;
+                        var cx = c.getContext('2d');
+                        // Only fill white bg for non-PNG
+                        if (mimeType !== 'image/png') {
+                            cx.fillStyle = '#ffffff';
+                            cx.fillRect(0, 0, w, h);
+                        }
+                        cx.drawImage(img, 0, 0, w, h);
+                        c.toBlob(function(blob) {
+                            resolve({ blob: blob, width: w, height: h });
+                        }, mimeType, quality);
+                        return;
+                    }
+
+                    // Calculate resized dimensions
+                    var ratio = w / h;
+                    var newW = maxWidth;
+                    var newH = Math.round(maxWidth / ratio);
+
+                    var c = document.createElement('canvas');
+                    c.width = newW;
+                    c.height = newH;
+                    var cx = c.getContext('2d');
+                    cx.imageSmoothingEnabled = true;
+                    cx.imageSmoothingQuality = 'high';
+
+                    if (mimeType !== 'image/png') {
+                        cx.fillStyle = '#ffffff';
+                        cx.fillRect(0, 0, newW, newH);
+                    }
+
+                    cx.drawImage(img, 0, 0, newW, newH);
+                    c.toBlob(function(blob) {
+                        resolve({ blob: blob, width: newW, height: newH });
+                    }, mimeType, quality);
+                };
+
+                img.onerror = function() {
+                    URL.revokeObjectURL(url);
+                    reject(new Error('Failed to load image'));
+                };
+
+                img.src = url;
+            });
+        }
+
+
+        /* ═══════════════════════════════════════
+           IMGBB UPLOAD WITH PROGRESS
+           ═══════════════════════════════════════ */
+        function uploadBlobWithProgress(blob, name, onProgress) {
+            return new Promise(function(resolve, reject) {
+                var form = new FormData();
+                form.append('key', API_KEY);
+                form.append('image', blob, name);
+
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', 'https://api.imgbb.com/1/upload');
+
+                xhr.upload.onprogress = function(e) {
+                    if (e.lengthComputable && onProgress) {
+                        onProgress(e.loaded / e.total);
+                    }
+                };
+
+                xhr.onload = function() {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            var data = JSON.parse(xhr.responseText);
+                            if (data.data && data.data.url) {
+                                resolve(data.data);
+                            } else {
+                                reject(new Error(data.error ? data.error.message : 'Unexpected API response'));
+                            }
+                        } catch (e) {
+                            reject(new Error('Invalid JSON response'));
+                        }
+                    } else {
+                        try {
+                            var errData = JSON.parse(xhr.responseText);
+                            reject(new Error(errData.error ? errData.error.message : 'HTTP ' + xhr.status));
+                        } catch (e2) {
+                            reject(new Error('HTTP ' + xhr.status));
+                        }
+                    }
+                };
+
+                xhr.onerror = function() { reject(new Error('Network error')); };
+                xhr.send(form);
+            });
+        }
+
+        function getImageDimensions(file) {
+            return new Promise(function(resolve, reject) {
+                var img = new Image();
+                var url = URL.createObjectURL(file);
+                img.onload = function() {
+                    URL.revokeObjectURL(url);
+                    resolve({ width: img.naturalWidth, height: img.naturalHeight });
+                };
+                img.onerror = function() {
+                    URL.revokeObjectURL(url);
+                    reject(new Error('Failed to load'));
+                };
+                img.src = url;
+            });
+        }
+
+
+        /* ═══════════════════════════════════════
+           CELEBRATION EFFECTS
+           ═══════════════════════════════════════ */
         function verticalLineReveal(x, y, tier, callback) {
             var startX = x - 80, endX = x + 80, travel = 0.55;
             var color = tier === 3 ? '#ffd700' : tier === 2 ? '#3dba6a' : '#d4943a';
             var colorFade = tier === 3 ? 'rgba(255,215,0,0)' : tier === 2 ? 'rgba(61,186,106,0)' : 'rgba(212,148,58,0)';
 
-            var glow = document.createElement('div'); glow.className = 'fx-slide-glow'; glow.style.left = '-20px';
+            var glow = document.createElement('div');
+            glow.className = 'fx-slide-glow';
+            glow.style.left = '-20px';
             glow.style.background = 'linear-gradient(90deg, transparent, ' + color + '20 40%, ' + color + '30 50%, ' + color + '20 60%, transparent)';
-            glow.style.setProperty('--start-x', startX+'px'); glow.style.setProperty('--end-x', endX+'px'); glow.style.setProperty('--travel', travel+'s');
+            glow.style.setProperty('--start-x', startX + 'px');
+            glow.style.setProperty('--end-x', endX + 'px');
+            glow.style.setProperty('--travel', travel + 's');
             document.body.appendChild(glow);
 
-            var line = document.createElement('div'); line.className = 'fx-slide-reveal'; line.style.left = '-1.5px';
+            var line = document.createElement('div');
+            line.className = 'fx-slide-reveal';
+            line.style.left = '-1.5px';
             line.style.background = 'linear-gradient(180deg, ' + colorFade + ', ' + color + ' 8%, ' + color + ' 92%, ' + colorFade + ')';
             line.style.boxShadow = '0 0 12px ' + color + ', 0 0 24px ' + color + '80';
-            line.style.setProperty('--start-x', startX+'px'); line.style.setProperty('--end-x', endX+'px'); line.style.setProperty('--travel', travel+'s');
+            line.style.setProperty('--start-x', startX + 'px');
+            line.style.setProperty('--end-x', endX + 'px');
+            line.style.setProperty('--travel', travel + 's');
             document.body.appendChild(line);
 
-            var edgeTop = document.createElement('div'); edgeTop.className = 'fx-slide-edge'; edgeTop.style.top = '-10px'; edgeTop.style.left = '-18px';
+            var edgeTop = document.createElement('div');
+            edgeTop.className = 'fx-slide-edge';
+            edgeTop.style.top = '-10px';
+            edgeTop.style.left = '-18px';
             edgeTop.style.background = 'radial-gradient(ellipse at center bottom, ' + color + '60, transparent)';
-            edgeTop.style.setProperty('--start-x', startX+'px'); edgeTop.style.setProperty('--end-x', endX+'px'); edgeTop.style.setProperty('--travel', travel+'s');
+            edgeTop.style.setProperty('--start-x', startX + 'px');
+            edgeTop.style.setProperty('--end-x', endX + 'px');
+            edgeTop.style.setProperty('--travel', travel + 's');
             document.body.appendChild(edgeTop);
 
-            var edgeBot = document.createElement('div'); edgeBot.className = 'fx-slide-edge'; edgeBot.style.bottom = '-10px'; edgeBot.style.left = '-18px';
+            var edgeBot = document.createElement('div');
+            edgeBot.className = 'fx-slide-edge';
+            edgeBot.style.bottom = '-10px';
+            edgeBot.style.left = '-18px';
             edgeBot.style.background = 'radial-gradient(ellipse at center top, ' + color + '60, transparent)';
-            edgeBot.style.setProperty('--start-x', startX+'px'); edgeBot.style.setProperty('--end-x', endX+'px'); edgeBot.style.setProperty('--travel', travel+'s');
+            edgeBot.style.setProperty('--start-x', startX + 'px');
+            edgeBot.style.setProperty('--end-x', endX + 'px');
+            edgeBot.style.setProperty('--travel', travel + 's');
             document.body.appendChild(edgeBot);
 
             if (tier >= 2) {
-                var line2 = document.createElement('div'); line2.className = 'fx-slide-reveal'; line2.style.left = '-0.5px'; line2.style.width = '1px';
-                line2.style.background = 'linear-gradient(180deg, transparent, #ffffff 8%, #ffffff 92%, transparent)'; line2.style.opacity = '0';
-                line2.style.setProperty('--start-x', (startX-10)+'px'); line2.style.setProperty('--end-x', (endX+10)+'px'); line2.style.setProperty('--travel', (travel+0.1)+'s');
+                var line2 = document.createElement('div');
+                line2.className = 'fx-slide-reveal';
+                line2.style.left = '-0.5px';
+                line2.style.width = '1px';
+                line2.style.background = 'linear-gradient(180deg, transparent, #ffffff 8%, #ffffff 92%, transparent)';
+                line2.style.opacity = '0';
+                line2.style.setProperty('--start-x', (startX - 10) + 'px');
+                line2.style.setProperty('--end-x', (endX + 10) + 'px');
+                line2.style.setProperty('--travel', (travel + 0.1) + 's');
                 document.body.appendChild(line2);
-                setTimeout(function(){ line2.remove(); }, (travel+0.1)*1000+50);
+                setTimeout(function() { line2.remove(); }, (travel + 0.1) * 1000 + 50);
             }
 
-            setTimeout(function(){ if(callback) callback(); }, travel*1000*0.45);
-            setTimeout(function(){ glow.remove(); }, travel*1000+50);
-            setTimeout(function(){ line.remove(); }, travel*1000+50);
-            setTimeout(function(){ edgeTop.remove(); }, travel*1000+50);
-            setTimeout(function(){ edgeBot.remove(); }, travel*1000+50);
+            setTimeout(function() { if (callback) callback(); }, travel * 1000 * 0.45);
+            setTimeout(function() { glow.remove(); }, travel * 1000 + 50);
+            setTimeout(function() { line.remove(); }, travel * 1000 + 50);
+            setTimeout(function() { edgeTop.remove(); }, travel * 1000 + 50);
+            setTimeout(function() { edgeBot.remove(); }, travel * 1000 + 50);
         }
 
-        /* ═══ COMBO CHAIN ═══ */
         function comboCelebration(x, y) {
             comboCount++;
             if (comboTimer) clearTimeout(comboTimer);
-            comboTimer = setTimeout(function(){ comboCount = 0; comboBadge.classList.remove('visible','tier2','tier3'); }, 2500);
+            comboTimer = setTimeout(function() {
+                comboCount = 0;
+                comboBadge.classList.remove('visible', 'tier2', 'tier3');
+            }, 2500);
 
             var tier = comboCount >= 5 ? 3 : comboCount >= 3 ? 2 : 1;
 
-            comboBadge.classList.remove('tier2','tier3');
-            if (tier === 3) { comboBadge.classList.add('visible','tier3'); comboBadge.textContent = comboCount + 'x UNSTOPPABLE'; }
-            else if (tier === 2) { comboBadge.classList.add('visible','tier2'); comboBadge.textContent = comboCount + 'x COMBO'; }
-            else { comboBadge.classList.add('visible'); comboBadge.textContent = comboCount + 'x'; }
+            comboBadge.classList.remove('tier2', 'tier3');
+            if (tier === 3) {
+                comboBadge.classList.add('visible', 'tier3');
+                comboBadge.textContent = comboCount + 'x UNSTOPPABLE';
+            } else if (tier === 2) {
+                comboBadge.classList.add('visible', 'tier2');
+                comboBadge.textContent = comboCount + 'x COMBO';
+            } else {
+                comboBadge.classList.add('visible');
+                comboBadge.textContent = comboCount + 'x';
+            }
 
-            var goldColors = ['#d4943a','#e8a838','#ffd700','#f5d78e'];
-            var greenColors = ['#3dba6a','#5fd88a','#a8f0c0'];
-            var hotColors = ['#ffd700','#ffffff','#f5d78e','#ffecb3','#e8a838'];
+            var goldColors = ['#d4943a', '#e8a838', '#ffd700', '#f5d78e'];
+            var greenColors = ['#3dba6a', '#5fd88a', '#a8f0c0'];
+            var hotColors = ['#ffd700', '#ffffff', '#f5d78e', '#ffecb3', '#e8a838'];
 
-            verticalLineReveal(x, y, tier, function(){
+            verticalLineReveal(x, y, tier, function() {
                 triggerImpactEffects(x, y, tier, goldColors, greenColors, hotColors);
             });
         }
 
         function triggerImpactEffects(x, y, tier, goldColors, greenColors, hotColors) {
+            // Flash
             var flashSize = tier === 3 ? 200 : tier === 2 ? 160 : 120;
-            var flash = document.createElement('div'); flash.className = 'fx-flash';
-            flash.style.left = x+'px'; flash.style.top = y+'px'; flash.style.width = flashSize+'px'; flash.style.height = flashSize+'px';
+            var flash = document.createElement('div');
+            flash.className = 'fx-flash';
+            flash.style.left = x + 'px';
+            flash.style.top = y + 'px';
+            flash.style.width = flashSize + 'px';
+            flash.style.height = flashSize + 'px';
             var fc = tier === 3 ? 'rgba(255,215,0,0.6)' : tier === 2 ? 'rgba(61,186,106,0.5)' : 'rgba(212,148,58,0.5)';
-            flash.style.background = 'radial-gradient(circle, '+fc+' 0%, transparent 70%)';
-            document.body.appendChild(flash); setTimeout(function(){ flash.remove(); }, 400);
+            flash.style.background = 'radial-gradient(circle, ' + fc + ' 0%, transparent 70%)';
+            document.body.appendChild(flash);
+            setTimeout(function() { flash.remove(); }, 400);
 
+            // Blades
             var bladeCount = tier === 3 ? 4 : tier === 2 ? 3 : 2;
             for (var b = 0; b < bladeCount; b++) {
-                (function(idx){
-                    var blade = document.createElement('div'); blade.className = 'fx-blade';
-                    var angle = -60 + (idx/bladeCount)*120 + (Math.random()-0.5)*20;
-                    var len = 80 + Math.random()*(tier===3?100:60), h = 2+Math.random()*2;
-                    blade.style.left = x+'px'; blade.style.top = y+'px'; blade.style.width = len+'px'; blade.style.height = h+'px';
-                    blade.style.transform = 'rotate('+angle+'deg)';
-                    var bc = goldColors[idx%goldColors.length];
-                    blade.style.background = 'linear-gradient(90deg, transparent, '+bc+' 30%, '+bc+' 70%, transparent)';
-                    blade.style.borderRadius = '2px'; blade.style.boxShadow = '0 0 8px '+bc+', 0 0 16px '+bc;
-                    blade.style.animationDelay = (idx*0.06)+'s';
-                    document.body.appendChild(blade); setTimeout(function(){ blade.remove(); }, 700);
+                (function(idx) {
+                    var blade = document.createElement('div');
+                    blade.className = 'fx-blade';
+                    var angle = -60 + (idx / bladeCount) * 120 + (Math.random() - 0.5) * 20;
+                    var len = 80 + Math.random() * (tier === 3 ? 100 : 60);
+                    var h = 2 + Math.random() * 2;
+                    blade.style.left = x + 'px';
+                    blade.style.top = y + 'px';
+                    blade.style.width = len + 'px';
+                    blade.style.height = h + 'px';
+                    blade.style.transform = 'rotate(' + angle + 'deg)';
+                    var bc = goldColors[idx % goldColors.length];
+                    blade.style.background = 'linear-gradient(90deg, transparent, ' + bc + ' 30%, ' + bc + ' 70%, transparent)';
+                    blade.style.borderRadius = '2px';
+                    blade.style.boxShadow = '0 0 8px ' + bc + ', 0 0 16px ' + bc;
+                    blade.style.animationDelay = (idx * 0.06) + 's';
+                    document.body.appendChild(blade);
+                    setTimeout(function() { blade.remove(); }, 700);
                 })(b);
             }
 
+            // Orbit ring
             var ringSize = tier === 3 ? 180 : tier === 2 ? 150 : 120;
             var rc = tier === 3 ? '#ffd700' : tier === 2 ? '#3dba6a' : '#d4943a';
-            var ring = document.createElement('div'); ring.className = 'fx-orbit';
-            ring.style.left = x+'px'; ring.style.top = y+'px'; ring.style.width = ringSize+'px'; ring.style.height = ringSize+'px';
-            ring.style.background = 'conic-gradient(from 0deg, transparent 0%, transparent 50%, '+rc+' 65%, '+rc+' 85%, transparent 100%)';
+            var ring = document.createElement('div');
+            ring.className = 'fx-orbit';
+            ring.style.left = x + 'px';
+            ring.style.top = y + 'px';
+            ring.style.width = ringSize + 'px';
+            ring.style.height = ringSize + 'px';
+            ring.style.background = 'conic-gradient(from 0deg, transparent 0%, transparent 50%, ' + rc + ' 65%, ' + rc + ' 85%, transparent 100%)';
             ring.style.maskImage = 'radial-gradient(circle, transparent 60%, black 62%, black 68%, transparent 70%)';
             ring.style.webkitMaskImage = 'radial-gradient(circle, transparent 60%, black 62%, black 68%, transparent 70%)';
-            ring.style.filter = 'blur(0.5px) drop-shadow(0 0 6px '+rc+')';
-            document.body.appendChild(ring); setTimeout(function(){ ring.remove(); }, 1000);
+            ring.style.filter = 'blur(0.5px) drop-shadow(0 0 6px ' + rc + ')';
+            document.body.appendChild(ring);
+            setTimeout(function() { ring.remove(); }, 1000);
+
             if (tier >= 2) {
-                var ring2 = document.createElement('div'); ring2.className = 'fx-orbit';
-                ring2.style.left = x+'px'; ring2.style.top = y+'px'; ring2.style.width = (ringSize+30)+'px'; ring2.style.height = (ringSize+30)+'px';
+                var ring2 = document.createElement('div');
+                ring2.className = 'fx-orbit';
+                ring2.style.left = x + 'px';
+                ring2.style.top = y + 'px';
+                ring2.style.width = (ringSize + 30) + 'px';
+                ring2.style.height = (ringSize + 30) + 'px';
                 ring2.style.background = 'conic-gradient(from 180deg, transparent 0%, transparent 40%, #3dba6a 55%, #3dba6a 75%, transparent 100%)';
                 ring2.style.maskImage = 'radial-gradient(circle, transparent 58%, black 60%, black 66%, transparent 68%)';
                 ring2.style.webkitMaskImage = 'radial-gradient(circle, transparent 58%, black 60%, black 66%, transparent 68%)';
-                ring2.style.filter = 'blur(0.5px) drop-shadow(0 0 6px #3dba6a)'; ring2.style.animationDelay = '0.2s';
-                document.body.appendChild(ring2); setTimeout(function(){ ring2.remove(); }, 1100);
+                ring2.style.filter = 'blur(0.5px) drop-shadow(0 0 6px #3dba6a)';
+                ring2.style.animationDelay = '0.2s';
+                document.body.appendChild(ring2);
+                setTimeout(function() { ring2.remove(); }, 1100);
             }
 
+            // Disc
             var discSize = tier === 3 ? 260 : tier === 2 ? 220 : 180;
-            var disc = document.createElement('div'); disc.className = 'fx-disc';
-            disc.style.left = x+'px'; disc.style.top = y+'px'; disc.style.width = discSize+'px'; disc.style.height = discSize+'px';
-            disc.style.border = '2px solid '+rc; disc.style.boxShadow = '0 0 20px '+rc+'40, inset 0 0 20px '+rc+'15';
-            document.body.appendChild(disc); setTimeout(function(){ disc.remove(); }, 700);
+            var disc = document.createElement('div');
+            disc.className = 'fx-disc';
+            disc.style.left = x + 'px';
+            disc.style.top = y + 'px';
+            disc.style.width = discSize + 'px';
+            disc.style.height = discSize + 'px';
+            disc.style.border = '2px solid ' + rc;
+            disc.style.boxShadow = '0 0 20px ' + rc + '40, inset 0 0 20px ' + rc + '15';
+            document.body.appendChild(disc);
+            setTimeout(function() { disc.remove(); }, 700);
 
+            // Sparks
             var sparkCount = tier === 3 ? 20 : tier === 2 ? 14 : 8;
-            var sparkPalette = goldColors.concat(greenColors).concat(['#f0ebe3','#ffffff']);
+            var sparkPalette = goldColors.concat(greenColors).concat(['#f0ebe3', '#ffffff']);
             for (var s = 0; s < sparkCount; s++) {
-                (function(idx){
-                    var spark = document.createElement('div'); spark.className = 'fx-spark-in';
-                    var angle = (idx/sparkCount)*Math.PI*2 + (Math.random()-0.5)*0.4;
-                    var dist = 50 + Math.random()*(tier===3?100:70);
-                    var sx = Math.cos(angle)*dist, sy = Math.sin(angle)*dist;
-                    var size = 3 + Math.random()*(tier===3?5:4), dur = 0.45+Math.random()*0.2, del = 0.05+Math.random()*0.08;
-                    var color = sparkPalette[Math.floor(Math.random()*sparkPalette.length)];
-                    spark.style.left = x+'px'; spark.style.top = y+'px'; spark.style.width = size+'px'; spark.style.height = size+'px';
-                    spark.style.background = color; spark.style.boxShadow = '0 0 '+Math.round(size*2)+'px '+color+', 0 0 '+Math.round(size*4)+'px '+color;
-                    spark.style.setProperty('--sx', sx+'px'); spark.style.setProperty('--sy', sy+'px');
-                    spark.style.setProperty('--dur', dur+'s'); spark.style.setProperty('--del', del+'s');
-                    spark.style.setProperty('--peak', (0.7+Math.random()*0.3).toString());
-                    document.body.appendChild(spark); setTimeout(function(){ spark.remove(); }, (dur+del)*1000+50);
+                (function(idx) {
+                    var spark = document.createElement('div');
+                    spark.className = 'fx-spark-in';
+                    var angle = (idx / sparkCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+                    var dist = 50 + Math.random() * (tier === 3 ? 100 : 70);
+                    var sx = Math.cos(angle) * dist;
+                    var sy = Math.sin(angle) * dist;
+                    var size = 3 + Math.random() * (tier === 3 ? 5 : 4);
+                    var dur = 0.45 + Math.random() * 0.2;
+                    var del = 0.05 + Math.random() * 0.08;
+                    var color = sparkPalette[Math.floor(Math.random() * sparkPalette.length)];
+                    spark.style.left = x + 'px';
+                    spark.style.top = y + 'px';
+                    spark.style.width = size + 'px';
+                    spark.style.height = size + 'px';
+                    spark.style.background = color;
+                    spark.style.boxShadow = '0 0 ' + Math.round(size * 2) + 'px ' + color + ', 0 0 ' + Math.round(size * 4) + 'px ' + color;
+                    spark.style.setProperty('--sx', sx + 'px');
+                    spark.style.setProperty('--sy', sy + 'px');
+                    spark.style.setProperty('--dur', dur + 's');
+                    spark.style.setProperty('--del', del + 's');
+                    spark.style.setProperty('--peak', (0.7 + Math.random() * 0.3).toString());
+                    document.body.appendChild(spark);
+                    setTimeout(function() { spark.remove(); }, (dur + del) * 1000 + 50);
                 })(s);
             }
 
-            setTimeout(function(){ triggerExplosion(x, y, tier, goldColors, hotColors); }, 400);
+            // Explosion + text
+            setTimeout(function() {
+                triggerExplosion(x, y, tier, goldColors, hotColors);
+            }, 400);
 
             if (tier >= 2) {
-                var txt = document.createElement('div'); txt.className = 'fx-text';
-                txt.style.left = x+'px'; txt.style.top = (y-45)+'px';
-                if (tier === 3) { txt.textContent = comboCount >= 8 ? 'LEGENDARY' : 'ON FIRE'; txt.style.fontSize = '1.6rem'; txt.style.color = '#ffd700'; txt.style.textShadow = '0 0 30px rgba(255,215,0,0.7), 0 0 60px rgba(255,215,0,0.3), 0 2px 4px rgba(0,0,0,0.8)'; }
-                else { txt.textContent = 'COMBO'; txt.style.fontSize = '1.2rem'; txt.style.color = '#3dba6a'; txt.style.textShadow = '0 0 20px rgba(61,186,106,0.6), 0 2px 4px rgba(0,0,0,0.8)'; }
-                document.body.appendChild(txt); setTimeout(function(){ txt.remove(); }, 900);
+                var txt = document.createElement('div');
+                txt.className = 'fx-text';
+                txt.style.left = x + 'px';
+                txt.style.top = (y - 45) + 'px';
+                if (tier === 3) {
+                    txt.textContent = comboCount >= 8 ? 'LEGENDARY' : 'ON FIRE';
+                    txt.style.fontSize = '1.6rem';
+                    txt.style.color = '#ffd700';
+                    txt.style.textShadow = '0 0 30px rgba(255,215,0,0.7), 0 0 60px rgba(255,215,0,0.3), 0 2px 4px rgba(0,0,0,0.8)';
+                } else {
+                    txt.textContent = 'COMBO';
+                    txt.style.fontSize = '1.2rem';
+                    txt.style.color = '#3dba6a';
+                    txt.style.textShadow = '0 0 20px rgba(61,186,106,0.6), 0 2px 4px rgba(0,0,0,0.8)';
+                }
+                document.body.appendChild(txt);
+                setTimeout(function() { txt.remove(); }, 900);
             }
         }
 
         function triggerExplosion(x, y, tier, goldColors, hotColors) {
-            // ★ Send shockwave into the world canvas
             worldPulse(x, y, tier);
 
+            // Flash
             var exFlashSize = tier === 3 ? 160 : tier === 2 ? 120 : 90;
-            var exFlash = document.createElement('div'); exFlash.className = 'fx-explode-flash';
-            exFlash.style.left = x+'px'; exFlash.style.top = y+'px'; exFlash.style.width = exFlashSize+'px'; exFlash.style.height = exFlashSize+'px';
+            var exFlash = document.createElement('div');
+            exFlash.className = 'fx-explode-flash';
+            exFlash.style.left = x + 'px';
+            exFlash.style.top = y + 'px';
+            exFlash.style.width = exFlashSize + 'px';
+            exFlash.style.height = exFlashSize + 'px';
             exFlash.style.background = 'radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,215,0,0.6) 30%, rgba(212,148,58,0.3) 60%, transparent 80%)';
-            document.body.appendChild(exFlash); setTimeout(function(){ exFlash.remove(); }, 450);
+            document.body.appendChild(exFlash);
+            setTimeout(function() { exFlash.remove(); }, 450);
 
-            var exRingSize = tier === 3 ? 300 : tier === 2 ? 240 : 200;
-            var exRing = document.createElement('div'); exRing.className = 'fx-explode-ring';
-            exRing.style.left = x+'px'; exRing.style.top = y+'px'; exRing.style.width = exRingSize+'px'; exRing.style.height = exRingSize+'px';
-            var exrc = tier === 3 ? '#ffd700' : '#e8a838';
-            exRing.style.border = '4px solid '+exrc; exRing.style.boxShadow = '0 0 25px '+exrc+', 0 0 50px '+exrc+'60, inset 0 0 25px '+exrc+'40';
-            document.body.appendChild(exRing); setTimeout(function(){ exRing.remove(); }, 600);
+            // Ring
+            var exRingSize = tier === 3 ? 300 : tier === 2 ? 240 : 180;
+            var ringColor = tier === 3 ? '#ffd700' : tier === 2 ? '#3dba6a' : '#d4943a';
+            var exRing = document.createElement('div');
+            exRing.className = 'fx-explode-ring';
+            exRing.style.left = x + 'px';
+            exRing.style.top = y + 'px';
+            exRing.style.width = exRingSize + 'px';
+            exRing.style.height = exRingSize + 'px';
+            exRing.style.border = '3px solid ' + ringColor;
+            exRing.style.boxShadow = '0 0 15px ' + ringColor + '60, inset 0 0 15px ' + ringColor + '20';
+            document.body.appendChild(exRing);
+            setTimeout(function() { exRing.remove(); }, 600);
 
-            var streakCount = tier === 3 ? 12 : tier === 2 ? 8 : 5;
+            if (tier >= 2) {
+                var exRing2 = document.createElement('div');
+                exRing2.className = 'fx-explode-ring-2';
+                exRing2.style.left = x + 'px';
+                exRing2.style.top = y + 'px';
+                exRing2.style.width = (exRingSize + 80) + 'px';
+                exRing2.style.height = (exRingSize + 80) + 'px';
+                exRing2.style.border = '2px solid ' + ringColor;
+                exRing2.style.boxShadow = '0 0 10px ' + ringColor + '40';
+                document.body.appendChild(exRing2);
+                setTimeout(function() { exRing2.remove(); }, 800);
+            }
+
+            // Streaks
+            var streakCount = tier === 3 ? 8 : tier === 2 ? 5 : 3;
             for (var st = 0; st < streakCount; st++) {
-                (function(idx){
-                    var streak = document.createElement('div'); streak.className = 'fx-explode-streak';
-                    var angle = (idx/streakCount)*360 + (Math.random()-0.5)*15;
-                    var len = 60+Math.random()*(tier===3?120:80), h = 1.5+Math.random()*2, dur = 0.35+Math.random()*0.2;
-                    var sc = hotColors[Math.floor(Math.random()*hotColors.length)];
-                    streak.style.left = x+'px'; streak.style.top = y+'px'; streak.style.width = len+'px'; streak.style.height = h+'px';
-                    streak.style.transform = 'rotate('+angle+'deg)'; streak.style.background = 'linear-gradient(90deg, '+sc+', transparent)';
-                    streak.style.borderRadius = '1px'; streak.style.boxShadow = '0 0 6px '+sc+', 0 0 12px '+sc;
-                    streak.style.setProperty('--dur', dur+'s'); streak.style.setProperty('--peak', (0.8+Math.random()*0.2).toString());
-                    document.body.appendChild(streak); setTimeout(function(){ streak.remove(); }, dur*1000+50);
+                (function(idx) {
+                    var streak = document.createElement('div');
+                    streak.className = 'fx-explode-streak';
+                    var angle = (idx / streakCount) * 360 + (Math.random() - 0.5) * 30;
+                    var len = 60 + Math.random() * (tier === 3 ? 80 : 50);
+                    var h = 1.5 + Math.random() * 1.5;
+                    streak.style.left = x + 'px';
+                    streak.style.top = y + 'px';
+                    streak.style.width = len + 'px';
+                    streak.style.height = h + 'px';
+                    streak.style.transform = 'rotate(' + angle + 'deg)';
+                    var sc = hotColors[idx % hotColors.length];
+                    streak.style.background = 'linear-gradient(90deg, ' + sc + ', transparent)';
+                    streak.style.borderRadius = '1px';
+                    streak.style.setProperty('--dur', (0.4 + Math.random() * 0.2) + 's');
+                    streak.style.setProperty('--peak', (0.6 + Math.random() * 0.4).toString());
+                    document.body.appendChild(streak);
+                    setTimeout(function() { streak.remove(); }, 700);
                 })(st);
             }
 
-            var shrapCount = tier === 3 ? 16 : tier === 2 ? 10 : 6;
-            for (var sh = 0; sh < shrapCount; sh++) {
-                (function(idx){
-                    var shrap = document.createElement('div'); shrap.className = 'fx-explode-shrapnel';
-                    var angle = (idx/shrapCount)*Math.PI*2 + (Math.random()-0.5)*0.6;
-                    var dist = 80+Math.random()*(tier===3?140:100);
-                    var dx = Math.cos(angle)*dist, dy = Math.sin(angle)*dist + 30+Math.random()*40;
-                    var size = 3+Math.random()*(tier===3?6:4), dur = 0.6+Math.random()*0.4;
-                    var sc = goldColors[Math.floor(Math.random()*goldColors.length)];
-                    shrap.style.left = x+'px'; shrap.style.top = y+'px'; shrap.style.width = size+'px'; shrap.style.height = size+'px';
-                    shrap.style.background = sc; shrap.style.boxShadow = '0 0 '+Math.round(size)+'px '+sc;
-                    if (Math.random()>0.5) { shrap.style.borderRadius='1px'; shrap.style.transform='rotate(45deg)'; } else { shrap.style.borderRadius='50%'; }
-                    shrap.style.setProperty('--dx', dx+'px'); shrap.style.setProperty('--dy', dy+'px');
-                    shrap.style.setProperty('--dur', dur+'s'); shrap.style.setProperty('--peak', (0.7+Math.random()*0.3).toString());
-                    document.body.appendChild(shrap); setTimeout(function(){ shrap.remove(); }, dur*1000+50);
+            // Shrapnel
+            var shrapnelCount = tier === 3 ? 10 : tier === 2 ? 6 : 3;
+            for (var sh = 0; sh < shrapnelCount; sh++) {
+                (function(idx) {
+                    var shrapnel = document.createElement('div');
+                    shrapnel.className = 'fx-explode-shrapnel';
+                    var angle = Math.random() * Math.PI * 2;
+                    var dist = 80 + Math.random() * (tier === 3 ? 120 : 80);
+                    var dx = Math.cos(angle) * dist;
+                    var dy = Math.sin(angle) * dist;
+                    var size = 4 + Math.random() * 6;
+                    shrapnel.style.left = x + 'px';
+                    shrapnel.style.top = y + 'px';
+                    shrapnel.style.width = size + 'px';
+                    shrapnel.style.height = size + 'px';
+                    var sc = goldColors[idx % goldColors.length];
+                    shrapnel.style.background = sc;
+                    shrapnel.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+                    shrapnel.style.boxShadow = '0 0 6px ' + sc;
+                    shrapnel.style.setProperty('--dx', dx + 'px');
+                    shrapnel.style.setProperty('--dy', dy + 'px');
+                    shrapnel.style.setProperty('--dur', (0.5 + Math.random() * 0.3) + 's');
+                    shrapnel.style.setProperty('--peak', (0.7 + Math.random() * 0.3).toString());
+                    document.body.appendChild(shrapnel);
+                    setTimeout(function() { shrapnel.remove(); }, 900);
                 })(sh);
             }
 
-            var emberCount = tier === 3 ? 24 : tier === 2 ? 16 : 10;
+            // Embers
+            var emberCount = tier === 3 ? 16 : tier === 2 ? 10 : 5;
             for (var em = 0; em < emberCount; em++) {
-                (function(idx){
-                    var ember = document.createElement('div'); ember.className = 'fx-explode-ember';
-                    var angle = Math.random()*Math.PI*2, dist = 40+Math.random()*(tier===3?180:130);
-                    var dx = Math.cos(angle)*dist, dy = Math.sin(angle)*dist + 20+Math.random()*30;
-                    var size = 1.5+Math.random()*2.5, dur = 0.8+Math.random()*0.6;
-                    var ec = hotColors[Math.floor(Math.random()*hotColors.length)];
-                    ember.style.left = x+'px'; ember.style.top = y+'px'; ember.style.width = size+'px'; ember.style.height = size+'px';
-                    ember.style.background = ec; ember.style.boxShadow = '0 0 '+Math.round(size*3)+'px '+ec+', 0 0 '+Math.round(size*6)+'px '+ec;
-                    ember.style.setProperty('--dx', dx+'px'); ember.style.setProperty('--dy', dy+'px');
-                    ember.style.setProperty('--dur', dur+'s'); ember.style.setProperty('--peak', (0.5+Math.random()*0.5).toString());
-                    document.body.appendChild(ember); setTimeout(function(){ ember.remove(); }, dur*1000+50);
+                (function(idx) {
+                    var ember = document.createElement('div');
+                    ember.className = 'fx-explode-ember';
+                    var angle = Math.random() * Math.PI * 2;
+                    var dist = 40 + Math.random() * (tier === 3 ? 160 : 100);
+                    var dx = Math.cos(angle) * dist;
+                    var dy = Math.sin(angle) * dist - 20;
+                    var size = 2 + Math.random() * 3;
+                    ember.style.left = x + 'px';
+                    ember.style.top = y + 'px';
+                    ember.style.width = size + 'px';
+                    ember.style.height = size + 'px';
+                    var ec = hotColors[idx % hotColors.length];
+                    ember.style.background = ec;
+                    ember.style.boxShadow = '0 0 ' + Math.round(size * 2) + 'px ' + ec;
+                    ember.style.setProperty('--dx', dx + 'px');
+                    ember.style.setProperty('--dy', dy + 'px');
+                    ember.style.setProperty('--dur', (0.6 + Math.random() * 0.5) + 's');
+                    ember.style.setProperty('--peak', (0.5 + Math.random() * 0.5).toString());
+                    document.body.appendChild(ember);
+                    setTimeout(function() { ember.remove(); }, 1200);
                 })(em);
             }
+        }
 
-            if (tier >= 2) {
-                var exRing2 = document.createElement('div'); exRing2.className = 'fx-explode-ring-2';
-                exRing2.style.left = x+'px'; exRing2.style.top = y+'px'; exRing2.style.width = (exRingSize+60)+'px'; exRing2.style.height = (exRingSize+60)+'px';
-                exRing2.style.border = '2px solid #3dba6a'; exRing2.style.boxShadow = '0 0 15px rgba(61,186,106,0.5), inset 0 0 15px rgba(61,186,106,0.2)';
-                document.body.appendChild(exRing2); setTimeout(function(){ exRing2.remove(); }, 800);
+
+        /* ═══════════════════════════════════════
+           CARD RENDERING
+           ═══════════════════════════════════════ */
+        function createCard(item) {
+            var card = document.createElement('div');
+            card.className = 'image-card';
+            card.id = 'card-' + item.id;
+            card.style.animationDelay = '0s';
+
+            var totalSizes = SIZE_PRESETS.length;
+            var liveSizes = 0;
+            var uploadingSizes = 0;
+
+            for (var si = 0; si < totalSizes; si++) {
+                if (item.sizes[si].status === 'live') liveSizes++;
+                else if (item.sizes[si].status === 'uploading') uploadingSizes++;
             }
-            if (tier >= 3) {
-                var exRing3 = document.createElement('div'); exRing3.className = 'fx-explode-ring-2';
-                exRing3.style.left = x+'px'; exRing3.style.top = y+'px'; exRing3.style.width = (exRingSize+100)+'px'; exRing3.style.height = (exRingSize+100)+'px';
-                exRing3.style.border = '1.5px solid #ffd700'; exRing3.style.boxShadow = '0 0 20px rgba(255,215,0,0.4)'; exRing3.style.animationDelay = '0.15s';
-                document.body.appendChild(exRing3); setTimeout(function(){ exRing3.remove(); }, 900);
+
+            var overallStatus = uploadingSizes > 0 ? 'uploading' :
+                (liveSizes === totalSizes ? 'live' :
+                (liveSizes > 0 ? 'live' : 'uploading'));
+            var statusClass = overallStatus === 'uploading' ? 'uploading' :
+                overallStatus === 'live' ? 'live' : 'error';
+            var statusLabel = overallStatus === 'uploading' ? 'Uploading' :
+                overallStatus === 'live' ? 'Live' : 'Error';
+
+            var html = '<div style="position:relative;">';
+            html += '<img class="card-preview" src="' + escapeAttr(item.localUrl) + '" alt="' + escapeAttr(item.name) + '" data-id="' + item.id + '">';
+            html += '<div class="card-upload-progress"><div class="card-upload-progress-fill" id="cardProgress-' + item.id + '" style="width:' + Math.round(item.progress * 100) + '%;' + (overallStatus === 'live' ? ' background:linear-gradient(90deg,var(--success),#5fd88a);' : '') + '"></div></div>';
+            html += '</div>';
+
+            html += '<div style="padding:12px 14px 8px;">';
+            html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;">';
+            html += '<p style="font-size:0.82rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;" title="' + escapeAttr(item.name) + '">' + escapeHtml(truncate(item.name, 28)) + '</p>';
+            html += '<span class="status-badge ' + statusClass + '"><span class="dot"></span>' + statusLabel + '</span>';
+            html += '</div>';
+
+            html += '<div style="display:flex;align-items:center;gap:10px;font-size:0.72rem;color:var(--muted);margin-bottom:4px;">';
+            html += '<span>' + fmtSize(item.size) + '</span>';
+            html += '<span>' + ext(item.name) + '</span>';
+            if (item.origWidth && item.origHeight) {
+                html += '<span>' + item.origWidth + 'x' + item.origHeight + '</span>';
+            }
+            html += '</div></div>';
+
+            // Sizes section
+            html += '<div class="sizes-section">';
+            html += '<div class="sizes-header"><i class="fa-solid fa-arrows-left-right-to-line" style="font-size:0.65rem;"></i><span>Sizes</span><span style="margin-left:auto;font-size:0.62rem;color:var(--muted);">' + liveSizes + '/' + totalSizes + ' live</span></div>';
+            html += '<div class="sizes-list">';
+
+            for (var si = 0; si < totalSizes; si++) {
+                var sz = item.sizes[si];
+                var preset = SIZE_PRESETS[si];
+                var boxClass = sz.status === 'live' ? 'live-size' :
+                    sz.status === 'error' ? 'error-size' : 'uploading-size';
+
+                html += '<div class="size-link-box ' + boxClass + '">';
+                html += '<span class="size-label">' + preset.label + '</span>';
+
+                if (sz.status === 'uploading') {
+                    html += '<span style="flex:1;color:var(--warn);font-size:0.68rem;"><i class="fa-solid fa-spinner fa-spin" style="margin-right:4px;"></i>Uploading...</span>';
+                } else if (sz.status === 'error') {
+                    html += '<span style="flex:1;font-size:0.68rem;">' + escapeHtml(sz.error || 'Failed') + '</span>';
+                    html += '<button class="copy-mini" title="Retry" onclick="retrySize(' + item.id + ',' + si + ')"><i class="fa-solid fa-rotate-right"></i></button>';
+                } else if (sz.status === 'live') {
+                    html += '<a href="' + escapeAttr(sz.url) + '" target="_blank" rel="noopener">' + escapeHtml(truncate(sz.url, 45)) + '</a>';
+                    html += '<button class="copy-mini" title="Copy" onclick="copySizeLink(' + item.id + ',' + si + ')"><i class="fa-regular fa-copy"></i></button>';
+                }
+
+                if (sz.width && sz.height) {
+                    html += '<span class="size-dims">' + sz.width + 'x' + sz.height + '</span>';
+                } else if (sz.status === 'uploading') {
+                    html += '<span class="size-dims">' + (preset.maxWidth || 'orig') + '</span>';
+                }
+
+                html += '</div>';
+            }
+
+            html += '</div></div>';
+
+            // Action buttons
+            html += '<div style="padding:8px 14px 14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">';
+            html += '<button class="btn-download" onclick="downloadImage(' + item.id + ')"><i class="fa-solid fa-download"></i> Download</button>';
+            html += '<button class="btn-sm" onclick="copyAllSizeLinks(' + item.id + ')"><i class="fa-regular fa-copy"></i> Copy All</button>';
+            html += '<button class="btn-danger-sm" style="margin-left:auto;" onclick="removeImage(' + item.id + ')"><i class="fa-solid fa-trash-can"></i></button>';
+            html += '</div>';
+
+            card.innerHTML = html;
+            return card;
+        }
+
+        function refreshCard(item) {
+            var old = document.getElementById('card-' + item.id);
+            if (!old) return;
+            var n = createCard(item);
+            n.style.animation = 'none';
+            n.style.opacity = '1';
+            old.replaceWith(n);
+        }
+
+        function updateCardProgress(item) {
+            var bar = document.getElementById('cardProgress-' + item.id);
+            if (bar) {
+                bar.style.width = Math.round(item.progress * 100) + '%';
+                var allDone = true;
+                for (var si = 0; si < item.sizes.length; si++) {
+                    if (item.sizes[si].status === 'uploading') { allDone = false; break; }
+                }
+                if (allDone) bar.classList.add('done');
             }
         }
 
-        function uploadToImgbb(file){ var fd=new FormData(); fd.append('image',file); return fetch('https://api.imgbb.com/1/upload?key='+API_KEY,{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(data){ if(!data.success) throw new Error(data.error?data.error.message:'Upload failed'); return {url:data.data.url,displayUrl:data.data.display_url||data.data.url,size:data.data.size?parseInt(data.data.size):file.size}; }); }
 
-        uploadZone.addEventListener('click',function(){ if(!isUploading) fileInput.click(); });
-        uploadZone.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); if(!isUploading) fileInput.click(); } });
-        fileInput.addEventListener('change',function(e){ handleFiles(e.target.files); fileInput.value=''; });
-        addMoreBtn.addEventListener('click',function(){ if(!isUploading) fileInput.click(); });
-        uploadZone.addEventListener('dragover',function(e){ e.preventDefault(); if(!isUploading) uploadZone.classList.add('drag-over'); });
-        uploadZone.addEventListener('dragleave',function(e){ e.preventDefault(); uploadZone.classList.remove('drag-over'); });
-        uploadZone.addEventListener('drop',function(e){ e.preventDefault(); uploadZone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+        /* ═══════════════════════════════════════
+           UPLOAD PIPELINE — resize then upload each size
+           ═══════════════════════════════════════ */
+        async function processImage(file) {
+            var id = idCounter++;
+            var localUrl = URL.createObjectURL(file);
+            var mimeType = getMimeFromName(file.name);
+            var fileExt = getExtFromName(file.name);
+            var origWidth = 0, origHeight = 0;
 
-        function handleFiles(fileList){
-            if(isUploading) return;
-            var files=[]; for(var i=0;i<fileList.length;i++){ if(fileList[i].type.startsWith('image/')) files.push(fileList[i]); }
-            var rejected=fileList.length-files.length; if(rejected>0) showToast(rejected+' non-image file(s) skipped.','error');
-            var oversized=[]; for(var j=0;j<files.length;j++){ if(files[j].size>32*1024*1024) oversized.push(files[j]); }
-            if(oversized.length>0){ showToast(oversized.length+' file(s) exceeded 32 MB.','error'); for(var k=0;k<oversized.length;k++){ var idx=files.indexOf(oversized[k]); if(idx>-1) files.splice(idx,1); } }
-            if(files.length===0) return;
-            isUploading=true; uploadZone.classList.add('uploading'); progressTrack.classList.remove('hidden'); progressFill.style.width='0%';
-            var processed=0,total=files.length;
-            function processNext(){
-                if(processed>=total){ setTimeout(function(){ progressTrack.classList.add('hidden'); isUploading=false; uploadZone.classList.remove('uploading'); var lc=0; for(var x=0;x<imageStore.length;x++){if(imageStore[x].status==='live')lc++;} if(lc>0) showToast(lc+' image(s) uploaded with live links!','success'); },400); return; }
-                var file=files[processed];
-                var entry={id:++idCounter,file:file,blobUrl:URL.createObjectURL(file),status:'uploading',serverData:null,errorMsg:'',width:'\u2014',height:'\u2014'};
-                var img=new Image(); img.onload=function(){entry.width=img.naturalWidth;entry.height=img.naturalHeight;}; img.src=entry.blobUrl;
-                imageStore.push(entry); renderCard(entry,processed*80); processed++; progressFill.style.width=Math.round((processed/total)*100)+'%';
-                uploadToImgbb(file).then(function(result){ entry.status='live'; entry.serverData=result; updateCardStatus(entry); var card=document.querySelector('.image-card[data-id="'+entry.id+'"]'); if(card){var r=card.getBoundingClientRect();comboCelebration(r.left+r.width/2,r.top+60);} }).catch(function(err){ entry.status='error'; entry.errorMsg=err.message||'Upload failed'; updateCardStatus(entry); showToast(truncate(file.name,20)+': '+entry.errorMsg,'error'); }).then(function(){ updateSummary(); processNext(); });
+            try {
+                var dim = await getImageDimensions(file);
+                origWidth = dim.width;
+                origHeight = dim.height;
+            } catch (e) { /* will show 0x0 */ }
+
+            var item = {
+                id: id,
+                file: file,
+                name: file.name,
+                size: file.size,
+                localUrl: localUrl,
+                origWidth: origWidth,
+                origHeight: origHeight,
+                progress: 0,
+                mimeType: mimeType,
+                fileExt: fileExt,
+                sizes: SIZE_PRESETS.map(function(p) {
+                    return {
+                        key: p.key,
+                        label: p.label,
+                        maxWidth: p.maxWidth,
+                        quality: p.quality,
+                        status: 'uploading',
+                        url: null,
+                        width: null,
+                        height: null,
+                        error: null,
+                        _progress: 0
+                    };
+                })
+            };
+
+            imageStore.push(item);
+            gallery.appendChild(createCard(item));
+            summaryBar.classList.remove('hidden');
+            updateSummary();
+
+            var uploadPromises = [];
+            for (var si = 0; si < SIZE_PRESETS.length; si++) {
+                (function(idx) {
+                    uploadPromises.push((async function() {
+                        var preset = SIZE_PRESETS[idx];
+                        var sz = item.sizes[idx];
+
+                        // Skip if image already smaller than target
+                        if (preset.maxWidth > 0 && origWidth <= preset.maxWidth) {
+                            sz.status = 'error';
+                            sz.error = 'Skipped — image already ' + origWidth + 'px wide';
+                            refreshCard(item);
+                            updateSummary();
+                            return;
+                        }
+
+                        try {
+                            // Step 1: Resize via Canvas
+                            var result = await resizeImageToBlob(file, preset.maxWidth, preset.quality, mimeType);
+                            sz.width = result.width;
+                            sz.height = result.height;
+
+                            // Step 2: Upload to imgbb
+                            var baseName = file.name.replace(/\.[^.]+$/, '');
+                            var uploadName = baseName + '_' + preset.key + fileExt;
+
+                            var imgbbData = await uploadBlobWithProgress(result.blob, uploadName, function(p) {
+                                sz._progress = p;
+                                var total = 0, done = 0;
+                                for (var k = 0; k < item.sizes.length; k++) {
+                                    if (item.sizes[k].status === 'live') {
+                                        done += 1; total += 1;
+                                    } else if (item.sizes[k].status === 'uploading') {
+                                        total += 1;
+                                        done += item.sizes[k]._progress || 0;
+                                    }
+                                }
+                                item.progress = total > 0 ? done / total : 0;
+                                updateCardProgress(item);
+                            });
+
+                            sz.url = imgbbData.url;
+                            sz.status = 'live';
+
+                        } catch (err) {
+                            sz.status = 'error';
+                            sz.error = err.message || 'Upload failed';
+                        }
+
+                        refreshCard(item);
+                        updateSummary();
+
+                        // Celebration when ALL sizes are done
+                        var allDone = true;
+                        for (var k = 0; k < item.sizes.length; k++) {
+                            if (item.sizes[k].status === 'uploading') { allDone = false; break; }
+                        }
+
+                        if (allDone) {
+                            var liveCount = 0;
+                            for (var k = 0; k < item.sizes.length; k++) {
+                                if (item.sizes[k].status === 'live') liveCount++;
+                            }
+                            if (liveCount > 0) {
+                                var cardEl = document.getElementById('card-' + item.id);
+                                if (cardEl) {
+                                    var rect = cardEl.getBoundingClientRect();
+                                    setTimeout(function() {
+                                        comboCelebration(
+                                            rect.left + rect.width / 2,
+                                            rect.top + rect.height / 2
+                                        );
+                                    }, 100);
+                                }
+                                showToast(item.name + ' — ' + liveCount + ' size(s) live', 'success');
+                            }
+                        }
+                    })());
+                })(si);
             }
-            processNext();
+
+            await Promise.allSettled(uploadPromises);
         }
 
-        function renderCard(entry,delay){
-            var card=document.createElement('div'); card.className='image-card'; card.style.animationDelay=(delay||0)+'ms'; card.dataset.id=entry.id;
-            card.innerHTML='<div style="position:relative;"><img class="card-preview" src="'+entry.blobUrl+'" alt="'+entry.file.name+'" loading="lazy"><div class="card-upload-progress"><div class="card-upload-progress-fill" id="progress-'+entry.id+'"></div></div></div><div class="p-4"><div class="flex items-center justify-between mb-2"><p class="text-sm font-medium" style="font-family:\'Space Grotesk\',sans-serif;" title="'+entry.file.name+'">'+truncate(entry.file.name,22)+'</p><span class="status-badge uploading" id="status-'+entry.id+'"><span class="dot"></span> Uploading</span></div><div class="flex flex-wrap gap-x-4 gap-y-1 mb-3"><div class="card-info-row"><i class="fa-solid fa-weight-scale text-xs" style="color:var(--accent);"></i><span class="val">'+fmtSize(entry.file.size)+'</span></div><div class="card-info-row"><i class="fa-solid fa-tag text-xs" style="color:var(--accent);"></i><span class="val">'+ext(entry.file.name)+'</span></div><div class="card-info-row" id="dims-'+entry.id+'"><i class="fa-solid fa-expand text-xs" style="color:var(--accent);"></i><span class="val">'+entry.width+'\u00d7'+entry.height+'</span></div></div><div id="link-area-'+entry.id+'" style="min-height:40px;"></div><div class="flex flex-wrap gap-2 mt-3" id="actions-'+entry.id+'"><button class="btn-sm card-retry hidden" data-id="'+entry.id+'"><i class="fa-solid fa-rotate-right"></i> Retry</button><button class="btn-danger-sm card-remove" data-id="'+entry.id+'"><i class="fa-solid fa-xmark"></i></button></div></div>';
-            card.querySelector('.card-preview').addEventListener('click',function(){ lightboxImg.src=entry.serverData?entry.serverData.displayUrl:entry.blobUrl; lightbox.classList.add('active'); });
-            card.querySelector('.card-remove').addEventListener('click',function(){ card.style.transition='opacity 0.3s, transform 0.3s'; card.style.opacity='0'; card.style.transform='scale(0.95)'; setTimeout(function(){ URL.revokeObjectURL(entry.blobUrl); var idx=-1; for(var i=0;i<imageStore.length;i++){if(imageStore[i].id===entry.id){idx=i;break;}} if(idx>-1) imageStore.splice(idx,1); card.remove(); updateSummary(); showToast('Image removed.','info'); },300); });
-            card.querySelector('.card-retry').addEventListener('click',function(){ retryUpload(entry); });
-            simulateProgress(entry.id); gallery.appendChild(card); updateSummary();
+
+        /* ═══════════════════════════════════════
+           CARD ACTIONS
+           ═══════════════════════════════════════ */
+        function downloadImage(id) {
+            var item = imageStore.find(function(i) { return i.id === id; });
+            if (!item) return;
+            var a = document.createElement('a');
+            a.href = item.localUrl;
+            a.download = item.name;
+            a.click();
         }
 
-        function simulateProgress(id){ var bar=document.getElementById('progress-'+id); if(!bar) return; var pct=0; var iv=setInterval(function(){ pct+=Math.random()*15+5; if(pct>=90){clearInterval(iv);return;} bar.style.width=Math.min(pct,90)+'%'; },300); bar.dataset.interval=iv; }
-
-        function updateCardStatus(entry){
-            var bar=document.getElementById('progress-'+entry.id); var badge=document.getElementById('status-'+entry.id); var linkArea=document.getElementById('link-area-'+entry.id); var dims=document.getElementById('dims-'+entry.id); var actions=document.getElementById('actions-'+entry.id); var retryBtn=actions?actions.querySelector('.card-retry'):null;
-            if(bar&&bar.dataset.interval) clearInterval(parseInt(bar.dataset.interval));
-            if(entry.status==='live'){
-                if(bar){bar.style.width='100%';bar.classList.add('done');} if(badge){badge.className='status-badge live';badge.innerHTML='<span class="dot"></span> Live';} if(dims) dims.innerHTML='<i class="fa-solid fa-expand text-xs" style="color:var(--accent);"></i><span class="val">'+entry.width+'\u00d7'+entry.height+'</span>'; if(retryBtn) retryBtn.classList.add('hidden');
-                if(linkArea){ var url=entry.serverData.url; var fname=entry.file.name; linkArea.innerHTML='<div class="real-link-box mb-2"><i class="fa-solid fa-link text-xs" style="flex-shrink:0;"></i><a href="'+url+'" target="_blank" rel="noopener">'+url+'</a><button class="copy-mini" data-copy="'+url+'"><i class="fa-regular fa-copy"></i></button></div><div class="flex gap-2 flex-wrap"><button class="btn-download card-dl" data-url="'+url+'" data-name="'+fname+'"><i class="fa-solid fa-download"></i> Download</button><button class="btn-sm" data-copy="<img src=&quot;'+url+'&quot; alt=&quot;'+fname+'&quot; />"><i class="fa-solid fa-code"></i> &lt;img&gt;</button><button class="btn-sm" data-copy="[!['+fname+']('+url+')]"><i class="fa-brands fa-markdown"></i> MD</button><a href="'+url+'" target="_blank" rel="noopener" class="btn-sm" style="color:var(--success);border-color:var(--success-border);"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open</a></div>';
-                linkArea.querySelectorAll('[data-copy]').forEach(function(btn){ btn.addEventListener('click',function(){ copyText(btn.dataset.copy.replace(/&quot;/g,'"')).then(function(ok){if(ok)showToast('Copied!','success');else showToast('Copy failed.','error');}); }); });
-                var dlBtn=linkArea.querySelector('.card-dl'); if(dlBtn) dlBtn.addEventListener('click',function(){downloadFromUrl(dlBtn.dataset.url,dlBtn.dataset.name);}); }
-            } else if(entry.status==='error'){ if(bar){bar.style.width='100%';bar.style.background='var(--danger)';} if(badge){badge.className='status-badge error';badge.innerHTML='<i class="fa-solid fa-xmark text-xs"></i> Failed';} if(retryBtn) retryBtn.classList.remove('hidden'); if(linkArea) linkArea.innerHTML='<p class="text-xs" style="color:var(--danger);">'+entry.errorMsg+'</p>'; }
+        function removeImage(id) {
+            var idx = imageStore.findIndex(function(i) { return i.id === id; });
+            if (idx === -1) return;
+            URL.revokeObjectURL(imageStore[idx].localUrl);
+            imageStore.splice(idx, 1);
+            var card = document.getElementById('card-' + id);
+            if (card) card.remove();
+            updateSummary();
+            if (imageStore.length === 0) summaryBar.classList.add('hidden');
+            showToast('Image removed', 'info');
         }
 
-        function downloadFromUrl(url,filename){ showToast('Preparing download...','info'); fetch(url).then(function(r){return r.blob();}).then(function(blob){ var burl=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=burl; a.download=filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function(){URL.revokeObjectURL(burl);},1000); showToast('Download started!','success'); }).catch(function(){showToast('Download failed.','error');}); }
+        function copySizeLink(id, sizeIdx) {
+            var item = imageStore.find(function(i) { return i.id === id; });
+            if (!item || !item.sizes[sizeIdx] || !item.sizes[sizeIdx].url) return;
+            copyText(item.sizes[sizeIdx].url).then(function() {
+                showToast('Link copied', 'success');
+            });
+        }
 
-        function retryUpload(entry){ entry.status='uploading'; entry.errorMsg=''; entry.serverData=null; var bar=document.getElementById('progress-'+entry.id); var badge=document.getElementById('status-'+entry.id); var linkArea=document.getElementById('link-area-'+entry.id); var retryBtn=document.querySelector('.card-retry[data-id="'+entry.id+'"]'); if(bar){bar.classList.remove('done');bar.style.background='';bar.style.width='0%';} if(badge){badge.className='status-badge uploading';badge.innerHTML='<span class="dot"></span> Uploading';} if(linkArea) linkArea.innerHTML=''; if(retryBtn) retryBtn.classList.add('hidden'); simulateProgress(entry.id); uploadToImgbb(entry.file).then(function(result){entry.status='live';entry.serverData=result;updateCardStatus(entry);var card=document.querySelector('.image-card[data-id="'+entry.id+'"]');if(card){var r=card.getBoundingClientRect();comboCelebration(r.left+r.width/2,r.top+60);}showToast('Upload successful!','success');}).catch(function(err){entry.status='error';entry.errorMsg=err.message||'Upload failed';updateCardStatus(entry);showToast('Failed: '+entry.errorMsg,'error');}).then(function(){updateSummary();}); }
+        function copyAllSizeLinks(id) {
+            var item = imageStore.find(function(i) { return i.id === id; });
+            if (!item) return;
+            var links = [];
+            for (var si = 0; si < item.sizes.length; si++) {
+                if (item.sizes[si].status === 'live' && item.sizes[si].url) {
+                    links.push(item.sizes[si].label + ': ' + item.sizes[si].url);
+                }
+            }
+            if (links.length === 0) { showToast('No live links yet', 'error'); return; }
+            copyText(links.join('\n')).then(function() {
+                showToast(links.length + ' link(s) copied', 'success');
+            });
+        }
 
-        function updateSummary(){ var count=imageStore.length; var live=0; for(var i=0;i<imageStore.length;i++){if(imageStore[i].status==='live')live++;} if(count===0){summaryBar.classList.add('hidden');copyAllLinksBtn.disabled=true;downloadAllBtn.disabled=true;downloadZipBtn.disabled=true;}else{summaryBar.classList.remove('hidden');copyAllLinksBtn.disabled=live===0;downloadAllBtn.disabled=live===0;downloadZipBtn.disabled=live===0;} totalCountEl.textContent=count; liveCountEl.textContent=live; }
+        async function retrySize(id, sizeIdx) {
+            var item = imageStore.find(function(i) { return i.id === id; });
+            if (!item) return;
+            var sz = item.sizes[sizeIdx];
+            var preset = SIZE_PRESETS[sizeIdx];
+            sz.status = 'uploading';
+            sz.error = null;
+            sz._progress = 0;
+            refreshCard(item);
 
-        copyAllLinksBtn.addEventListener('click',function(){ var links=[]; for(var i=0;i<imageStore.length;i++){if(imageStore[i].status==='live'&&imageStore[i].serverData) links.push(imageStore[i].serverData.url);} if(links.length===0) return; copyText(links.join('\n')).then(function(ok){if(ok)showToast(links.length+' link(s) copied!','success');else showToast('Copy failed.','error');}); });
-        downloadAllBtn.addEventListener('click',function(){ var live=[]; for(var i=0;i<imageStore.length;i++){if(imageStore[i].status==='live'&&imageStore[i].serverData) live.push(imageStore[i]);} if(live.length===0) return; var delay=0; live.forEach(function(entry){setTimeout(function(){downloadFromUrl(entry.serverData.url,entry.file.name);},delay);delay+=500;}); showToast('Downloading '+live.length+' image(s)...','info'); });
+            try {
+                var result = await resizeImageToBlob(item.file, preset.maxWidth, preset.quality, item.mimeType);
+                sz.width = result.width;
+                sz.height = result.height;
+                var baseName = item.file.name.replace(/\.[^.]+$/, '');
+                var uploadName = baseName + '_' + preset.key + item.fileExt;
 
-        downloadZipBtn.addEventListener('click',function(){
-            var live=[]; for(var i=0;i<imageStore.length;i++){if(imageStore[i].status==='live'&&imageStore[i].serverData) live.push(imageStore[i]);}
-            if(live.length===0) return; downloadZipBtn.disabled=true; zipOverlay.classList.add('active'); zipStatus.textContent='Fetching '+live.length+' image(s)...'; zipProgressFill.style.width='0%';
-            var zip=new JSZip(); var nameCount={}; var fetched=0;
-            function fetchNext(){ if(fetched>=live.length){ zipStatus.textContent='Compressing ZIP...'; zipProgressFill.style.width='85%'; zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}},function(m){zipProgressFill.style.width=(85+Math.round(m.percent*0.15))+'%';}).then(function(content){ zipProgressFill.style.width='100%'; zipStatus.textContent='Done!'; var url=URL.createObjectURL(content); var a=document.createElement('a'); a.href=url; a.download='snaplink-images.zip'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); comboCelebration(window.innerWidth/2,window.innerHeight/2); setTimeout(function(){zipOverlay.classList.remove('active');showToast('ZIP created with '+live.length+' image(s)!','success');},600); downloadZipBtn.disabled=false; }).catch(function(err){zipOverlay.classList.remove('active');showToast('ZIP failed: '+(err.message||'Error'),'error');downloadZipBtn.disabled=false;}); return; }
-            var entry=live[fetched]; zipStatus.textContent='Fetching: '+truncate(entry.file.name,25)+' ('+(fetched+1)+'/'+live.length+')'; zipProgressFill.style.width=Math.round((fetched/live.length)*80)+'%';
-            var name=entry.file.name; if(nameCount[name]){var dot=name.lastIndexOf('.');var base=dot>-1?name.substring(0,dot):name;var ex=dot>-1?name.substring(dot):'';name=base+' ('+nameCount[name]+')'+ex;} nameCount[name]=(nameCount[name]||0)+1;
-            fetch(entry.serverData.url).then(function(r){return r.blob();}).then(function(blob){zip.file(name,blob);fetched++;fetchNext();}).catch(function(){showToast('Failed: '+truncate(entry.file.name,20),'error');fetched++;fetchNext();}); }
-            fetchNext();
+                var imgbbData = await uploadBlobWithProgress(result.blob, uploadName, function(p) {
+                    sz._progress = p;
+                    updateCardProgress(item);
+                });
+
+                sz.url = imgbbData.url;
+                sz.status = 'live';
+                showToast(preset.label + ' size uploaded', 'success');
+
+            } catch (err) {
+                sz.status = 'error';
+                sz.error = err.message || 'Retry failed';
+                showToast(preset.label + ' retry failed: ' + err.message, 'error');
+            }
+
+            refreshCard(item);
+            updateSummary();
+        }
+
+
+        /* ═══════════════════════════════════════
+           SUMMARY & BULK ACTIONS
+           ═══════════════════════════════════════ */
+        function updateSummary() {
+            totalCountEl.textContent = imageStore.length;
+            var live = 0;
+            for (var i = 0; i < imageStore.length; i++) {
+                for (var si = 0; si < imageStore[i].sizes.length; si++) {
+                    if (imageStore[i].sizes[si].status === 'live') live++;
+                }
+            }
+            liveCountEl.textContent = live;
+            copyAllLinksBtn.disabled = live === 0;
+            downloadAllBtn.disabled = imageStore.length === 0;
+            downloadZipBtn.disabled = live === 0;
+        }
+
+        function copyAllLinks() {
+            var links = [];
+            for (var i = 0; i < imageStore.length; i++) {
+                var item = imageStore[i];
+                for (var si = 0; si < item.sizes.length; si++) {
+                    if (item.sizes[si].status === 'live' && item.sizes[si].url) {
+                        links.push('[' + item.name + ' - ' + item.sizes[si].label + '] ' + item.sizes[si].url);
+                    }
+                }
+            }
+            if (links.length === 0) { showToast('No live links to copy', 'error'); return; }
+            copyText(links.join('\n')).then(function() {
+                showToast(links.length + ' link(s) copied to clipboard', 'success');
+            });
+        }
+
+        function downloadAll() {
+            for (var i = 0; i < imageStore.length; i++) {
+                (function(item, delay) {
+                    setTimeout(function() {
+                        var a = document.createElement('a');
+                        a.href = item.localUrl;
+                        a.download = item.name;
+                        a.click();
+                        // Effect on the card
+                        var cardEl = document.getElementById('card-' + item.id);
+                        if (cardEl) {
+                            var rect = cardEl.getBoundingClientRect();
+                            comboCelebration(
+                                rect.left + rect.width / 2,
+                                rect.top + rect.height / 2
+                            );
+                        }
+                    }, delay);
+                })(imageStore[i], i * 200);
+            }
+            showToast('Downloading ' + imageStore.length + ' file(s)', 'info');
+        }
+
+        async function downloadZip() {
+            var liveItems = [];
+            for (var i = 0; i < imageStore.length; i++) {
+                var item = imageStore[i];
+                var itemSizes = [];
+                for (var si = 0; si < item.sizes.length; si++) {
+                    if (item.sizes[si].status === 'live' && item.sizes[si].url) {
+                        itemSizes.push(item.sizes[si]);
+                    }
+                }
+                if (itemSizes.length > 0) {
+                    liveItems.push({ item: item, sizes: itemSizes });
+                }
+            }
+
+            if (liveItems.length === 0) {
+                showToast('No live links to ZIP', 'error');
+                return;
+            }
+
+            zipOverlay.classList.add('active');
+            zipStatus.textContent = 'Fetching images...';
+            zipProgressFill.style.width = '0%';
+
+            try {
+                var zip = new JSZip();
+                var total = 0, done = 0;
+                for (var i = 0; i < liveItems.length; i++) {
+                    total += liveItems[i].sizes.length;
+                }
+
+                for (var i = 0; i < liveItems.length; i++) {
+                    var entry = liveItems[i];
+                    var baseName = entry.item.name.replace(/\.[^.]+$/, '');
+
+                    for (var si = 0; si < entry.sizes.length; si++) {
+                        var sz = entry.sizes[si];
+                        zipStatus.textContent = 'Fetching ' + baseName + ' (' + sz.label + ')...';
+
+                        try {
+                            var resp = await fetch(sz.url);
+                            var blob = await resp.blob();
+                            var zipExt = '.jpg';
+                            if (blob.type === 'image/png') zipExt = '.png';
+                            else if (blob.type === 'image/webp') zipExt = '.webp';
+                            else if (blob.type === 'image/gif') zipExt = '.gif';
+                            zip.file(baseName + '_' + sz.key + zipExt, blob);
+                        } catch (e) { /* skip failed fetch */ }
+
+                        done++;
+                        zipProgressFill.style.width = Math.round((done / total) * 80) + '%';
+                    }
+                }
+
+                zipStatus.textContent = 'Compressing ZIP...';
+                var content = await zip.generateAsync({ type: 'blob' }, function(meta) {
+                    zipProgressFill.style.width = (80 + Math.round(meta.percent * 0.2)) + '%';
+                });
+
+                // Fire celebration at the upload zone center
+                var zoneRect = uploadZone.getBoundingClientRect();
+                var cx = zoneRect.left + zoneRect.width / 2;
+                var cy = zoneRect.top + zoneRect.height / 2;
+                comboCelebration(cx, cy);
+
+                var a = document.createElement('a');
+                a.href = URL.createObjectURL(content);
+                a.download = 'SnapLink_Images.zip';
+                a.click();
+                URL.revokeObjectURL(a.href);
+                showToast('ZIP downloaded — ' + done + ' image(s)', 'success');
+
+            } catch (e) {
+                showToast('ZIP creation failed: ' + e.message, 'error');
+            }
+
+            setTimeout(function() { zipOverlay.classList.remove('active'); }, 600);
+        }
+
+        function clearAll() {
+            for (var i = 0; i < imageStore.length; i++) {
+                URL.revokeObjectURL(imageStore[i].localUrl);
+            }
+            imageStore = [];
+            gallery.innerHTML = '';
+            summaryBar.classList.add('hidden');
+            progressTrack.classList.add('hidden');
+            updateSummary();
+            showToast('All images cleared', 'info');
+        }
+
+
+        /* ═══════════════════════════════════════
+           EVENT LISTENERS
+           ═══════════════════════════════════════ */
+        uploadZone.addEventListener('click', function() {
+            if (!uploadZone.classList.contains('uploading')) fileInput.click();
         });
 
-        clearAllBtn.addEventListener('click',function(){ for(var i=0;i<imageStore.length;i++) URL.revokeObjectURL(imageStore[i].blobUrl); imageStore.length=0; gallery.innerHTML=''; updateSummary(); showToast('All images cleared.','info'); });
-        lightbox.addEventListener('click',function(){lightbox.classList.remove('active');});
-        document.addEventListener('keydown',function(e){if(e.key==='Escape') lightbox.classList.remove('active');});
-        updateSummary();
+        uploadZone.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                fileInput.click();
+            }
+        });
+
+        addMoreBtn.addEventListener('click', function() { fileInput.click(); });
+        clearAllBtn.addEventListener('click', clearAll);
+        copyAllLinksBtn.addEventListener('click', copyAllLinks);
+        downloadAllBtn.addEventListener('click', downloadAll);
+        downloadZipBtn.addEventListener('click', downloadZip);
+
+        fileInput.addEventListener('change', function(e) {
+            if (e.target.files.length > 0) handleFiles(e.target.files);
+            e.target.value = '';
+        });
+
+        uploadZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadZone.classList.add('drag-over');
+        });
+        uploadZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadZone.classList.remove('drag-over');
+        });
+        uploadZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadZone.classList.remove('drag-over');
+            if (e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files);
+        });
+
+        document.addEventListener('dragover', function(e) { e.preventDefault(); });
+        document.addEventListener('drop', function(e) { e.preventDefault(); });
+
+        lightbox.addEventListener('click', function() {
+            lightbox.classList.remove('active');
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') lightbox.classList.remove('active');
+        });
+
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('card-preview')) {
+                var id = parseInt(e.target.getAttribute('data-id'));
+                var item = imageStore.find(function(i) { return i.id === id; });
+                if (item) {
+                    lightboxImg.src = item.localUrl;
+                    lightbox.classList.add('active');
+                }
+            }
+        });
+
+        async function handleFiles(fileList) {
+            var files = [];
+            for (var i = 0; i < fileList.length; i++) {
+                if (fileList[i].type.startsWith('image/')) {
+                    files.push(fileList[i]);
+                }
+            }
+            if (files.length === 0) {
+                showToast('No valid images found', 'error');
+                return;
+            }
+
+            isUploading = true;
+            uploadZone.classList.add('uploading');
+            progressTrack.classList.remove('hidden');
+
+            var totalFiles = files.length;
+            var processedFiles = 0;
+
+            for (var i = 0; i < files.length; i++) {
+                await processImage(files[i]);
+                processedFiles++;
+                progressFill.style.width = Math.round((processedFiles / totalFiles) * 100) + '%';
+            }
+
+            isUploading = false;
+            uploadZone.classList.remove('uploading');
+            setTimeout(function() {
+                progressTrack.classList.add('hidden');
+                progressFill.style.width = '0%';
+            }, 1000);
+
+            if (files.length > 1) {
+                showToast(files.length + ' images processed', 'success');
+            }
+        }
     </script>
 </body>
 </html>
